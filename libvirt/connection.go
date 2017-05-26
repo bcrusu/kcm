@@ -34,7 +34,29 @@ func (c *LibvirtConnection) GetStoragePool(pool string) (*libvirtxml.StoragePool
 	if err != nil {
 		return nil, err
 	}
+
+	if p == nil {
+		// not found
+		return nil, nil
+	}
+
 	defer p.Free()
 
 	return getStoragePoolXML(p)
+}
+
+func (c *LibvirtConnection) GetDomain(domain string) (*libvirtxml.Domain, error) {
+	d, err := lookupDomain(c.connect, domain)
+	if err != nil {
+		return nil, err
+	}
+
+	if d == nil {
+		// not found
+		return nil, nil
+	}
+
+	defer d.Free()
+
+	return getDomainXML(d)
 }

@@ -5,17 +5,17 @@ type Domain struct {
 	root *Node
 }
 
-func NewDomainForXML(xmlDoc string) (Domain, error) {
+func NewDomainForXML(xmlDoc string) (*Domain, error) {
 	doc := &Document{}
 	if err := doc.Unmarshal(xmlDoc); err != nil {
-		return Domain{}, err
+		return nil, err
 	}
 
 	if doc.Root == nil {
 		doc.Root = NewNode(nameForLocal("domain"))
 	}
 
-	return Domain{
+	return &Domain{
 		doc:  doc,
 		root: doc.Root,
 	}, nil
