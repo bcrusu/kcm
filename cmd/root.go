@@ -3,6 +3,8 @@ package cmd
 import (
 	"path"
 
+	"github.com/bcrusu/kcm/cmd/create"
+	"github.com/bcrusu/kcm/util"
 	"github.com/spf13/cobra"
 )
 
@@ -10,11 +12,11 @@ const LibvirtDefaultURI = "qemu:///system"
 
 var (
 	configDirAddress = RootCmd.PersistentFlags().String("config-dir", getDefaultConfigDir(), "Directory for the cluster files")
-	libvirtUri       = RootCmd.PersistentFlags().String("libvirt-uri", LibvirtDefaultURI, "Libvirt URI")
+	libvirtURI       = RootCmd.PersistentFlags().String("libvirt-uri", LibvirtDefaultURI, "Libvirt URI")
 )
 
 func init() {
-	RootCmd.AddCommand(createCmd)
+	RootCmd.AddCommand(create.Cmd)
 	RootCmd.AddCommand(removeCmd)
 	RootCmd.AddCommand(switchCmd)
 }
@@ -25,6 +27,6 @@ var RootCmd = &cobra.Command{
 }
 
 func getDefaultConfigDir() string {
-	home := getHomeDir()
+	home := util.GetUserHomeDir()
 	return path.Join(home, ".kcm")
 }
