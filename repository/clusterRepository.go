@@ -26,8 +26,8 @@ type clusterRepository struct {
 }
 
 func New(path string) (ClusterRepository, error) {
-	if err := checkDirExists(path); err != nil {
-		return nil, err
+	if err := os.MkdirAll(path, 0755); err != nil {
+		return nil, errors.Wrapf(err, "failed to initialize cluster repository '%s'", path)
 	}
 
 	return &clusterRepository{
@@ -118,18 +118,11 @@ func (r *clusterRepository) Remove(name string) error {
 
 func (r *clusterRepository) Exists(name string) bool {
 	clusterPath := path.Join(r.path, name)
-	return checkDirExists(clusterPath) == nil
-}
 
-func checkDirExists(path string) error {
-	info, err := os.Stat(path)
+	_, err := os.Stat(clusterPath)
 	if err != nil {
-		return errors.Wrapf(err, "invalid cluster repository path '%s'", path)
+		return !os.IsNotExist(err)
 	}
 
-	if !info.IsDir() {
-		return errors.Errorf("invalid cluster repository path '%s' - not a directory", path)
-	}
-
-	return nil
+	return true
 }

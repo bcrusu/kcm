@@ -3,23 +3,24 @@ package create
 import (
 	"compress/bzip2"
 	"fmt"
+	"io"
 	"path"
 
 	"github.com/bcrusu/kcm/util"
 	"github.com/golang/glog"
 )
 
-func coreOSVolumeName(version string) string {
+func CoreOSVolumeName(version string) string {
 	return fmt.Sprintf("coreos_production_qemu_image_%s.qcow2", version)
 }
 
-func downloadCoreOSImage(channel, version string, outDir string) error {
-	fileName := coreOSVolumeName(version)
+func DownloadCoreOS(channel, version string, outDir string) error {
+	fileName := CoreOSVolumeName(version)
 	filePath := path.Join(outDir, fileName)
 
 	url := fmt.Sprintf("https://%s.release.core-os.net/amd64-usr/%s/coreos_production_qemu_image.img.bz2", channel, version)
 
-	glog.Infof("downloading '%s' to path '%s'", url, filePath)
+	glog.Infof("downloading CoreOS from '%s' to path '%s'", url, filePath)
 
 	downloadReader, err := util.DownloadHTTP(url)
 	if err != nil {
@@ -35,7 +36,7 @@ func downloadCoreOSImage(channel, version string, outDir string) error {
 	}
 	defer util.CloseNoError(file)
 
-	err = util.TransferAllBytes(decompressReader, file)
+	_, err = io.Copy(file, decompressReader)
 	if err != nil {
 		return err
 	}
