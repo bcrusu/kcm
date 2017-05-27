@@ -11,8 +11,8 @@ import (
 const LibvirtDefaultURI = "qemu:///system"
 
 var (
-	configDirAddress = RootCmd.PersistentFlags().String("config-dir", getDefaultConfigDir(), "Directory for the cluster files")
-	libvirtURI       = RootCmd.PersistentFlags().String("libvirt-uri", LibvirtDefaultURI, "Libvirt URI")
+	repositoryAddress = RootCmd.PersistentFlags().String("repository", getDefaultRepositoryPath(), "Cluster repository path. Cluster definitions will be placed here.")
+	libvirtURI        = RootCmd.PersistentFlags().String("libvirt-uri", LibvirtDefaultURI, "Libvirt URI")
 )
 
 func init() {
@@ -26,7 +26,7 @@ var RootCmd = &cobra.Command{
 	SilenceUsage: true,
 }
 
-func getDefaultConfigDir() string {
+func getDefaultRepositoryPath() string {
 	home := util.GetUserHomeDir()
 	return path.Join(home, ".kcm")
 }

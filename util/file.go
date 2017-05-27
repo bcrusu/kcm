@@ -14,11 +14,3 @@ func CreateFile(fileName string, perm os.FileMode) (*os.File, error) {
 
 	return file, nil
 }
-
-func FileExists(fileName string) bool {
-	if _, err := os.Stat(fileName); os.IsNotExist(err) {
-		return false
-	}
-
-	return true
-}
