@@ -63,7 +63,7 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 
 func (r *clusterRepository) Load(name string) (*Cluster, error) {
 	clusterPath := path.Join(r.path, name)
-	return newCluster(clusterPath)
+	return loadCluster(clusterPath)
 }
 
 func (r *clusterRepository) Current() (*string, error) {
@@ -94,13 +94,12 @@ func (r *clusterRepository) SetCurrent(name string) error {
 }
 
 func (r *clusterRepository) Save(cluster *Cluster) error {
-	clusterName := cluster.Name()
-	if clusterName == "" {
-		return errors.New("invalid cluster name")
+	if err := cluster.validate(); err != nil {
+		return errors.Wrap(err, "failed to save cluster")
 	}
 
-	clusterPath := path.Join(r.path, clusterName)
-	return cluster.Save(clusterPath)
+	clusterPath := path.Join(r.path, cluster.Name)
+	return cluster.save(clusterPath)
 }
 
 func (r *clusterRepository) Remove(name string) error {
