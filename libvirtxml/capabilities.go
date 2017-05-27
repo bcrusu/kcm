@@ -5,17 +5,17 @@ type Capabilities struct {
 	root *Node
 }
 
-func NewCapabilitiesForXML(xmlDoc string) (Capabilities, error) {
+func NewCapabilitiesForXML(xmlDoc string) (*Capabilities, error) {
 	doc := &Document{}
 	if err := doc.Unmarshal(xmlDoc); err != nil {
-		return Capabilities{}, err
+		return nil, err
 	}
 
 	if doc.Root == nil {
 		doc.Root = NewNode(nameForLocal("capabilities"))
 	}
 
-	return Capabilities{
+	return &Capabilities{
 		doc:  doc,
 		root: doc.Root,
 	}, nil

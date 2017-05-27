@@ -1,6 +1,8 @@
 package libvirt
 
 import (
+	"strings"
+
 	"github.com/bcrusu/kcm/libvirtxml"
 	"github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
@@ -28,6 +30,10 @@ func NewConnection(uri string) (*LibvirtConnection, error) {
 func (c *LibvirtConnection) Close() {
 	c.connect.Close()
 	c.connect = nil
+}
+
+func (c *LibvirtConnection) GetCapabilities() (*libvirtxml.Capabilities, error) {
+	return getCapabilitiesXML(c.connect)
 }
 
 func (c *LibvirtConnection) GetStoragePool(pool string) (*libvirtxml.StoragePool, error) {
@@ -81,6 +87,43 @@ func (c *LibvirtConnection) GetDomain(domain string) (*libvirtxml.Domain, error)
 	return getDomainXML(d)
 }
 
+func (c *LibvirtConnection) ListAllDomains() ([]libvirtxml.Domain, error) {
+	var result []libvirtxml.Domain
+
+	flags := libvirt.CONNECT_LIST_DOMAINS_ACTIVE |
+		libvirt.CONNECT_LIST_DOMAINS_INACTIVE |
+		libvirt.CONNECT_LIST_DOMAINS_PERSISTENT |
+		libvirt.CONNECT_LIST_DOMAINS_TRANSIENT |
+		libvirt.CONNECT_LIST_DOMAINS_RUNNING |
+		libvirt.CONNECT_LIST_DOMAINS_PAUSED |
+		libvirt.CONNECT_LIST_DOMAINS_SHUTOFF |
+		libvirt.CONNECT_LIST_DOMAINS_OTHER |
+		libvirt.CONNECT_LIST_DOMAINS_MANAGEDSAVE |
+		libvirt.CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE |
+		libvirt.CONNECT_LIST_DOMAINS_AUTOSTART |
+		libvirt.CONNECT_LIST_DOMAINS_NO_AUTOSTART |
+		libvirt.CONNECT_LIST_DOMAINS_HAS_SNAPSHOT |
+		libvirt.CONNECT_LIST_DOMAINS_NO_SNAPSHOT
+
+	domains, err := c.connect.ListAllDomains(flags)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list domains")
+	}
+
+	for _, domain := range domains {
+		domainXML, err := getDomainXML(&domain)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, *domainXML)
+		domain.Free()
+	}
+
+	//TODO(bcrusu): cache the result
+	return result, nil
+}
+
 func (c *LibvirtConnection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
 	p, err := c.findStoragePool(pool)
 	if err != nil {
@@ -101,4 +144,46 @@ func (c *LibvirtConnection) findStoragePool(name string) (*libvirt.StoragePool, 
 	}
 
 	return pool, nil
+}
+
+func (c *LibvirtConnection) GenerateUniqueMACAddresses(count int) ([]string, error) {
+	allDomains, err := c.ListAllDomains()
+	if err != nil {
+		return nil, err
+	}
+
+	allMACs := make(map[string]bool)
+	for _, domain := range allDomains {
+		interfaces := domain.Devices().Interfaces()
+		for _, iface := range interfaces {
+			ifaceMAC := iface.MACAddress()
+			allMACs[strings.ToUpper(ifaceMAC)] = true
+		}
+	}
+
+	var result []string
+
+enclosingLoop:
+	for j := 0; j < count; j++ {
+		for i := 0; i < 256; i++ {
+			mac, err := randomMACAddress(c.uri)
+			if err != nil {
+				return nil, err
+			}
+
+			if _, ok := allMACs[mac]; !ok {
+				// if no colisions add to result; else retry, up to 256 times
+				result = append(result, mac)
+
+				// add to list to avoid conflicts between generated MACs
+				allMACs[mac] = true
+
+				continue enclosingLoop
+			}
+		}
+
+		return nil, errors.Errorf("failed to generate non-conflicting MAC address. Too many colisions")
+	}
+
+	return result, nil
 }
