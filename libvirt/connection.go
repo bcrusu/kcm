@@ -8,9 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const MetadataXMLNamespace = "https://github.com/bcrusu/kcm"
+
 type LibvirtConnection struct {
-	uri     string
-	connect *libvirt.Connect
+	uri          string
+	connect      *libvirt.Connect
+	capabilities *libvirtxml.Capabilities
 }
 
 func NewConnection(uri string) (*LibvirtConnection, error) {
@@ -33,7 +36,16 @@ func (c *LibvirtConnection) Close() {
 }
 
 func (c *LibvirtConnection) GetCapabilities() (*libvirtxml.Capabilities, error) {
-	return getCapabilitiesXML(c.connect)
+	if c.capabilities == nil {
+		capabilities, err := getCapabilitiesXML(c.connect)
+		if err != nil {
+			return nil, err
+		}
+
+		c.capabilities = capabilities
+	}
+
+	return c.capabilities, nil
 }
 
 func (c *LibvirtConnection) GetStoragePool(pool string) (*libvirtxml.StoragePool, error) {
@@ -205,4 +217,18 @@ func (c *LibvirtConnection) GetNetwork(network string) (*libvirtxml.Network, err
 
 func (c *LibvirtConnection) DefineNATNetwork(name string, ipv4CIDR, ipv6CIDR string) error {
 	return defineNATNetwork(c.connect, name, ipv4CIDR, ipv6CIDR)
+}
+
+func (c *LibvirtConnection) DefineDomain(params DefineDomainParams) error {
+	capabilities, err := c.GetCapabilities()
+	if err != nil {
+		return err
+	}
+
+	qemuEmulatorPath, err := findQemuEmulatorPath(capabilities)
+	if err != nil {
+		return err
+	}
+
+	return defineDomain(c.connect, params, qemuEmulatorPath)
 }

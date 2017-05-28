@@ -2,6 +2,8 @@ package libvirtxml
 
 import (
 	"strconv"
+
+	"github.com/golang/glog"
 )
 
 type StorageVolumeSize struct {
@@ -22,8 +24,19 @@ func (s StorageVolumeSize) SetUnit(value string) {
 	s.node.setAttribute(nameForLocal("unit"), value)
 }
 
-func (s StorageVolumeSize) Value() string {
-	return s.node.CharData
+func (s StorageVolumeSize) Value() uint64 {
+	str := s.node.CharData
+	if str == "" {
+		return 0
+	}
+
+	result, err := strconv.Atoi(str)
+	if err != nil || result < 0 {
+		result = 0
+		glog.Warningf("libvirtxml: ignoring invalid storage volume size '%s'", str)
+	}
+
+	return uint64(result)
 }
 
 func (s StorageVolumeSize) SetValue(value uint64) {

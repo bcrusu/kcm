@@ -55,6 +55,11 @@ func (s DomainDisk) Source() DomainDiskSource {
 	return newDomainDiskSource(node)
 }
 
+func (s DomainDisk) Target() DomainDiskTarget {
+	node := s.node.ensureNode(nameForLocal("target"))
+	return newDomainDiskTarget(node)
+}
+
 func (s DomainDisk) Driver() DomainDiskDriver {
 	node := s.node.ensureNode(nameForLocal("driver"))
 	return newDomainDiskDriver(node)

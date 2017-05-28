@@ -25,7 +25,7 @@ func (s DomainGraphic) Port() int {
 	port, err := strconv.Atoi(str)
 	if err != nil {
 		port = 0
-		glog.Warningf("ignoring invalid domain graphics port '%s'", str)
+		glog.Warningf("libvirtxml: ignoring invalid domain graphics port '%s'", str)
 	}
 	return port
 }

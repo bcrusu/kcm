@@ -29,6 +29,12 @@ func (s DomainDevices) Disks() []DomainDisk {
 	return result
 }
 
+func (s DomainDevices) NewDisk() DomainDisk {
+	node := NewNode(nameForLocal("disk"))
+	s.node.addNode(node)
+	return newDomainDisk(node)
+}
+
 func (s DomainDevices) SetDisks(disks []DomainDisk) {
 	s.node.removeNodes(nameForLocal("disk"))
 
@@ -59,6 +65,12 @@ func (s DomainDevices) Interfaces() []DomainInterface {
 	return result
 }
 
+func (s DomainDevices) NewInterface() DomainInterface {
+	node := NewNode(nameForLocal("interface"))
+	s.node.addNode(node)
+	return newDomainInterface(node)
+}
+
 func (s DomainDevices) Channels() []DomainChannel {
 	var result []DomainChannel
 
@@ -68,4 +80,21 @@ func (s DomainDevices) Channels() []DomainChannel {
 	}
 
 	return result
+}
+
+func (s DomainDevices) Filesystems() []DomainFilesystem {
+	var result []DomainFilesystem
+
+	nodes := s.node.findNodes(nameForLocal("filesystem"))
+	for _, node := range nodes {
+		result = append(result, newDomainFilesystem(node))
+	}
+
+	return result
+}
+
+func (s DomainDevices) NewFilesystem() DomainFilesystem {
+	node := NewNode(nameForLocal("filesystem"))
+	s.node.addNode(node)
+	return newDomainFilesystem(node)
 }

@@ -54,6 +54,16 @@ func (s Domain) Devices() DomainDevices {
 	return newDomainDevices(node)
 }
 
+func (s Domain) VCPU() DomainVCPU {
+	node := s.root.ensureNode(nameForLocal("vcpu"))
+	return newDomainVCPU(node)
+}
+
+func (s Domain) Memory() DomainMemory {
+	node := s.root.ensureNode(nameForLocal("memory"))
+	return newDomainMemory(node)
+}
+
 func (s Domain) Metadata() DomainMetadata {
 	node := s.root.ensureNode(nameForLocal("metadata"))
 	return newDomainMetadata(node)

@@ -13,3 +13,9 @@ func newDomainMetadata(node *Node) DomainMetadata {
 func (d DomainMetadata) FindNodes(name Name) []*Node {
 	return d.node.findNodes(name)
 }
+
+func (s DomainMetadata) NewNode(name Name) *Node {
+	node := NewNode(name)
+	s.node.addNode(node)
+	return node
+}
