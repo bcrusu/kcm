@@ -187,3 +187,22 @@ enclosingLoop:
 
 	return result, nil
 }
+
+func (c *LibvirtConnection) GetNetwork(network string) (*libvirtxml.Network, error) {
+	d, err := lookupNetwork(c.connect, network)
+	if err != nil {
+		return nil, err
+	}
+
+	if d == nil {
+		// not found
+		return nil, nil
+	}
+	defer d.Free()
+
+	return getNetworkXML(d)
+}
+
+func (c *LibvirtConnection) DefineNATNetwork(name string, ipv4CIDR, ipv6CIDR string) error {
+	return defineNATNetwork(c.connect, name, ipv4CIDR, ipv6CIDR)
+}

@@ -20,9 +20,11 @@ var (
 	clusterName          = createCmd.PersistentFlags().String("name", "kube", "Cluster name")
 	masterCount          = createCmd.PersistentFlags().Int("master-count", 1, "Initial number of masters in the cluster")
 	nodesCount           = createCmd.PersistentFlags().Int("node-count", 3, "Initial number of nodes in the cluster")
-	networking           = createCmd.PersistentFlags().String("networking", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
+	kubernetesNetwork    = createCmd.PersistentFlags().String("kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	sshPublicKey         = createCmd.PersistentFlags().String("ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
 	start                = createCmd.PersistentFlags().Bool("start", false, "Start the cluster immediately")
+	ipv4CIDR             = createCmd.PersistentFlags().String("ipv4-cidr", "10.11.0.1/24", "Libvirt network IPv4 CIDR")
+	ipv6CIDR             = createCmd.PersistentFlags().String("ipv6-cidr", "2001:db8::/120", "Libvirt network IPv6 CIDR")
 )
 
 func init() {
