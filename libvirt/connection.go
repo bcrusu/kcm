@@ -10,13 +10,13 @@ import (
 
 const MetadataXMLNamespace = "https://github.com/bcrusu/kcm"
 
-type LibvirtConnection struct {
+type Connection struct {
 	uri          string
 	connect      *libvirt.Connect
 	capabilities *libvirtxml.Capabilities
 }
 
-func NewConnection(uri string) (*LibvirtConnection, error) {
+func NewConnection(uri string) (*Connection, error) {
 	//TODO: allow only local connections
 
 	connect, err := libvirt.NewConnect(uri)
@@ -24,18 +24,18 @@ func NewConnection(uri string) (*LibvirtConnection, error) {
 		return nil, err
 	}
 
-	return &LibvirtConnection{
+	return &Connection{
 		uri:     uri,
 		connect: connect,
 	}, nil
 }
 
-func (c *LibvirtConnection) Close() {
+func (c *Connection) Close() {
 	c.connect.Close()
 	c.connect = nil
 }
 
-func (c *LibvirtConnection) GetCapabilities() (*libvirtxml.Capabilities, error) {
+func (c *Connection) GetCapabilities() (*libvirtxml.Capabilities, error) {
 	if c.capabilities == nil {
 		capabilities, err := getCapabilitiesXML(c.connect)
 		if err != nil {
@@ -48,7 +48,7 @@ func (c *LibvirtConnection) GetCapabilities() (*libvirtxml.Capabilities, error) 
 	return c.capabilities, nil
 }
 
-func (c *LibvirtConnection) GetStoragePool(pool string) (*libvirtxml.StoragePool, error) {
+func (c *Connection) GetStoragePool(pool string) (*libvirtxml.StoragePool, error) {
 	p, err := lookupStoragePool(c.connect, pool)
 	if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ func (c *LibvirtConnection) GetStoragePool(pool string) (*libvirtxml.StoragePool
 	return getStoragePoolXML(p)
 }
 
-func (c *LibvirtConnection) GetStorageVolume(pool, volume string) (*libvirtxml.StorageVolume, error) {
+func (c *Connection) GetStorageVolume(pool, volume string) (*libvirtxml.StorageVolume, error) {
 	p, err := c.findStoragePool(pool)
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func (c *LibvirtConnection) GetStorageVolume(pool, volume string) (*libvirtxml.S
 	return getStorageVolumeXML(v)
 }
 
-func (c *LibvirtConnection) GetDomain(domain string) (*libvirtxml.Domain, error) {
+func (c *Connection) GetDomain(domain string) (*libvirtxml.Domain, error) {
 	d, err := lookupDomain(c.connect, domain)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (c *LibvirtConnection) GetDomain(domain string) (*libvirtxml.Domain, error)
 	return getDomainXML(d)
 }
 
-func (c *LibvirtConnection) ListAllDomains() ([]libvirtxml.Domain, error) {
+func (c *Connection) ListAllDomains() ([]libvirtxml.Domain, error) {
 	var result []libvirtxml.Domain
 
 	flags := libvirt.CONNECT_LIST_DOMAINS_ACTIVE |
@@ -136,7 +136,7 @@ func (c *LibvirtConnection) ListAllDomains() ([]libvirtxml.Domain, error) {
 	return result, nil
 }
 
-func (c *LibvirtConnection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
+func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
 	p, err := c.findStoragePool(pool)
 	if err != nil {
 		return err
@@ -145,7 +145,7 @@ func (c *LibvirtConnection) CreateStorageVolume(pool string, name string, backin
 	return createStorageVolume(p, name, backingVolumeName)
 }
 
-func (c *LibvirtConnection) findStoragePool(name string) (*libvirt.StoragePool, error) {
+func (c *Connection) findStoragePool(name string) (*libvirt.StoragePool, error) {
 	pool, err := lookupStoragePool(c.connect, name)
 	if err != nil {
 		return nil, err
@@ -158,7 +158,8 @@ func (c *LibvirtConnection) findStoragePool(name string) (*libvirt.StoragePool, 
 	return pool, nil
 }
 
-func (c *LibvirtConnection) GenerateUniqueMACAddresses(count int) ([]string, error) {
+func (c *Connection) GenerateUniqueMACAddresses(count int) ([]string, error) {
+	// TODO: take into account network bridge MAC address
 	allDomains, err := c.ListAllDomains()
 	if err != nil {
 		return nil, err
@@ -200,7 +201,7 @@ enclosingLoop:
 	return result, nil
 }
 
-func (c *LibvirtConnection) GetNetwork(network string) (*libvirtxml.Network, error) {
+func (c *Connection) GetNetwork(network string) (*libvirtxml.Network, error) {
 	d, err := lookupNetwork(c.connect, network)
 	if err != nil {
 		return nil, err
@@ -215,11 +216,11 @@ func (c *LibvirtConnection) GetNetwork(network string) (*libvirtxml.Network, err
 	return getNetworkXML(d)
 }
 
-func (c *LibvirtConnection) DefineNATNetwork(name string, ipv4CIDR, ipv6CIDR string) error {
-	return defineNATNetwork(c.connect, name, ipv4CIDR, ipv6CIDR)
+func (c *Connection) DefineNATNetwork(params DefineNetworkParams) error {
+	return defineNATNetwork(c.connect, params)
 }
 
-func (c *LibvirtConnection) DefineDomain(params DefineDomainParams) error {
+func (c *Connection) DefineDomain(params DefineDomainParams) error {
 	capabilities, err := c.GetCapabilities()
 	if err != nil {
 		return err

@@ -100,11 +100,7 @@ func defineDomain(connect *libvirt.Connect, params DefineDomainParams, emulatorP
 		disk.Target().SetBus("virtio")
 	}
 
-	for name, value := range params.Metadata {
-		nodeName := libvirtxml.NewName(MetadataXMLNamespace, name)
-		node := domainXML.Metadata().NewNode(nodeName)
-		node.CharData = value
-	}
+	setMetadataValues(domainXML.Metadata(), params.Metadata)
 
 	// Set the graphics device port to auto, in order to avoid conflicts
 	graphics := domainXML.Devices().Graphics()

@@ -9,6 +9,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+type DefineNetworkParams struct {
+	Name     string
+	IPv4CIDR string
+	IPv6CIDR string
+	Metadata map[string]string // map[NAME]VALUE
+}
+
 func lookupNetwork(connect *libvirt.Connect, lookup string) (*libvirt.Network, error) {
 	if len(lookup) == uuidStringLength {
 		net, err := connect.LookupNetworkByUUIDString(lookup)
@@ -44,25 +51,27 @@ func getNetworkXML(network *libvirt.Network) (*libvirtxml.Network, error) {
 	return libvirtxml.NewNetworkForXML(xml)
 }
 
-func defineNATNetwork(connect *libvirt.Connect, name string, ipv4CIDR, ipv6CIDR string) error {
+func defineNATNetwork(connect *libvirt.Connect, params DefineNetworkParams) error {
 	networkXML := libvirtxml.NewNetwork()
-	networkXML.SetName(name)
+	networkXML.SetName(params.Name)
 	networkXML.Forward().SetMode("nat")
 	networkXML.Forward().SetNATPortRange(1024, 65535)
 
 	networkXML.Bridge().SetSTP(true)
 
-	if ipv4CIDR != "" {
-		addIP(networkXML, ipv4CIDR)
+	if params.IPv4CIDR != "" {
+		addIP(networkXML, params.IPv4CIDR)
 	}
 
-	if ipv6CIDR != "" {
-		addIP(networkXML, ipv6CIDR)
+	if params.IPv6CIDR != "" {
+		addIP(networkXML, params.IPv6CIDR)
 	}
 
 	if len(networkXML.IPs()) == 0 {
 		return errors.New("libvirt: failed to define network - missing CIDR")
 	}
+
+	setMetadataValues(networkXML.Metadata(), params.Metadata)
 
 	xmlString, err := networkXML.MarshalToXML()
 	if err != nil {
@@ -71,7 +80,7 @@ func defineNATNetwork(connect *libvirt.Connect, name string, ipv4CIDR, ipv6CIDR 
 
 	network, err := connect.NetworkDefineXML(xmlString)
 	if err != nil {
-		return errors.Wrapf(err, "libvirt: failed to define network '%s'", name)
+		return errors.Wrapf(err, "libvirt: failed to define network '%s'", params.Name)
 	}
 	defer network.Free()
 

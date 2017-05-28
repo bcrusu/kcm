@@ -16,7 +16,7 @@ type ClusterRepository interface {
 	SetCurrent(name string) error
 	Load(name string) (*Cluster, error)
 	LoadAll() ([]*Cluster, error)
-	Save(cluster *Cluster) error
+	Save(cluster Cluster) error
 	Remove(name string) error
 	Exists(name string) bool
 }
@@ -27,7 +27,7 @@ type clusterRepository struct {
 
 func New(path string) (ClusterRepository, error) {
 	if err := os.MkdirAll(path, 0755); err != nil {
-		return nil, errors.Wrapf(err, "failed to initialize cluster repository '%s'", path)
+		return nil, errors.Wrapf(err, "repository: failed to initialize cluster repository '%s'", path)
 	}
 
 	return &clusterRepository{
@@ -40,7 +40,7 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 
 	files, err := ioutil.ReadDir(r.path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read cluster repository dir '%s'", r.path)
+		return nil, errors.Wrapf(err, "repository: failed to read cluster repository dir '%s'", r.path)
 	}
 
 	for _, file := range files {
@@ -51,7 +51,7 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 		fileName := file.Name()
 		cluster, err := r.Load(fileName)
 		if err != nil {
-			glog.Warningf("failed to load cluster '%s' in repository '%s'", fileName, r.path)
+			glog.Warningf("repository: failed to load cluster '%s' in repository '%s'", fileName, r.path)
 			continue
 		}
 
@@ -74,7 +74,7 @@ func (r *clusterRepository) Current() (*string, error) {
 			return nil, nil
 		}
 
-		return nil, errors.Wrap(err, "failed to load current cluster")
+		return nil, errors.Wrap(err, "repository: failed to load current cluster")
 	}
 
 	clusterName := string(bytes)
@@ -87,30 +87,34 @@ func (r *clusterRepository) SetCurrent(name string) error {
 
 	err := ioutil.WriteFile(filePath, data, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "failed to set cluster '%s' as current cluster", name)
+		return errors.Wrapf(err, "repository: failed to set cluster '%s' as current cluster", name)
 	}
 
 	return nil
 }
 
-func (r *clusterRepository) Save(cluster *Cluster) error {
-	if err := cluster.validate(); err != nil {
-		return errors.Wrap(err, "failed to save cluster")
+func (r *clusterRepository) Save(cluster Cluster) error {
+	if err := cluster.Validate(); err != nil {
+		return errors.Wrap(err, "repository: failed to save cluster")
 	}
 
 	clusterPath := path.Join(r.path, cluster.Name)
+	if err := os.MkdirAll(clusterPath, 0755); err != nil {
+		return errors.Wrapf(err, "repository: failed to create cluster directory '%s'", clusterPath)
+	}
+
 	return cluster.save(clusterPath)
 }
 
 func (r *clusterRepository) Remove(name string) error {
 	if name == "" {
-		return errors.New("invalid cluster name")
+		return errors.New("repository: invalid cluster name")
 	}
 
 	clusterPath := path.Join(r.path, name)
 	err := os.RemoveAll(clusterPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to remove cluster '%s'", name)
+		return errors.Wrapf(err, "repository: failed to remove cluster '%s'", name)
 	}
 
 	return nil

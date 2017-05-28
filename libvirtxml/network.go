@@ -91,7 +91,7 @@ func (s Network) NewIP() NetworkIP {
 	return newNetworkIP(node)
 }
 
-func (s Network) Metadata() NetworkMetadata {
+func (s Network) Metadata() Metadata {
 	node := s.root.ensureNode(nameForLocal("metadata"))
-	return newNetworkMetadata(node)
+	return newMetadata(node)
 }

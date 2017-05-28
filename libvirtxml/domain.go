@@ -64,7 +64,7 @@ func (s Domain) Memory() DomainMemory {
 	return newDomainMemory(node)
 }
 
-func (s Domain) Metadata() DomainMetadata {
+func (s Domain) Metadata() Metadata {
 	node := s.root.ensureNode(nameForLocal("metadata"))
-	return newDomainMetadata(node)
+	return newMetadata(node)
 }

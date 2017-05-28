@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bcrusu/kcm/libvirtxml"
 	"github.com/pkg/errors"
 )
 
@@ -49,4 +50,12 @@ func isQemuURL(url *url.URL) bool {
 func isXenURL(url *url.URL) bool {
 	return strings.HasPrefix(url.Scheme, "xen") ||
 		strings.HasPrefix(url.Scheme, "libxl")
+}
+
+func setMetadataValues(metadata libvirtxml.Metadata, kv map[string]string) {
+	for name, value := range kv {
+		nodeName := libvirtxml.NewName(MetadataXMLNamespace, name)
+		node := metadata.NewNode(nodeName)
+		node.CharData = value
+	}
 }
