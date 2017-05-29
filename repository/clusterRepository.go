@@ -5,6 +5,8 @@ import (
 	"os"
 	"path"
 
+	"strings"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -23,7 +25,7 @@ type ClusterRepository interface {
 
 type clusterRepository struct {
 	path           string
-	currentCluster string //TODO
+	currentCluster *string
 }
 
 func New(path string) (ClusterRepository, error) {
@@ -31,9 +33,15 @@ func New(path string) (ClusterRepository, error) {
 		return nil, errors.Wrapf(err, "repository: failed to initialize cluster repository '%s'", path)
 	}
 
-	return &clusterRepository{
+	result := &clusterRepository{
 		path: path,
-	}, nil
+	}
+
+	if err := result.loadCurrentClusterName(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
@@ -68,17 +76,11 @@ func (r *clusterRepository) Load(name string) (*Cluster, error) {
 }
 
 func (r *clusterRepository) Current() (*Cluster, error) {
-	filePath := path.Join(r.path, currentClusterFileName)
-	bytes, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-
-		return nil, errors.Wrap(err, "repository: failed to load current cluster")
+	if r.currentCluster == nil {
+		return nil, nil
 	}
 
-	return r.Load(string(bytes))
+	return r.Load(*r.currentCluster)
 }
 
 func (r *clusterRepository) SetCurrent(name string) error {
@@ -90,6 +92,7 @@ func (r *clusterRepository) SetCurrent(name string) error {
 		return errors.Wrapf(err, "repository: failed to set cluster '%s' as current cluster", name)
 	}
 
+	r.currentCluster = &name
 	return nil
 }
 
@@ -103,7 +106,15 @@ func (r *clusterRepository) Save(cluster Cluster) error {
 		return errors.Wrapf(err, "repository: failed to create cluster directory '%s'", clusterPath)
 	}
 
-	return cluster.save(clusterPath)
+	if err := cluster.save(clusterPath); err != nil {
+		return err
+	}
+
+	if r.currentCluster == nil {
+		return r.SetCurrent(cluster.Name)
+	}
+
+	return nil
 }
 
 func (r *clusterRepository) Remove(name string) error {
@@ -117,6 +128,10 @@ func (r *clusterRepository) Remove(name string) error {
 		return errors.Wrapf(err, "repository: failed to remove cluster '%s'", name)
 	}
 
+	if name == *r.currentCluster {
+		return r.resetCurrentClusterName()
+	}
+
 	return nil
 }
 
@@ -125,8 +140,39 @@ func (r *clusterRepository) Exists(name string) bool {
 
 	_, err := os.Stat(clusterPath)
 	if err != nil {
-		return !os.IsNotExist(err)
+		return !os.IsNotExist(err) //TODO: review
 	}
 
 	return true
+}
+
+func (r *clusterRepository) loadCurrentClusterName() error {
+	filePath := path.Join(r.path, currentClusterFileName)
+	bytes, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+
+		return errors.Wrap(err, "repository: failed to load current cluster")
+	}
+
+	name := strings.TrimSpace(string(bytes))
+	r.currentCluster = &name
+	return nil
+}
+
+func (r *clusterRepository) resetCurrentClusterName() error {
+	filePath := path.Join(r.path, currentClusterFileName)
+	err := os.Remove(filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+
+		return errors.Wrap(err, "repository: failed to reset current cluster name")
+	}
+
+	r.currentCluster = nil
+	return nil
 }

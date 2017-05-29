@@ -87,10 +87,6 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: no master node configured")
 	}
 
-	if len(c.Nodes) < 1 {
-		return errors.New("repository: no worker node configured")
-	}
-
 	for _, node := range c.Masters {
 		if err := node.validate(); err != nil {
 			return err

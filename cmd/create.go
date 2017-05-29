@@ -42,9 +42,6 @@ func newCreateCmd() *cobra.Command {
 
 	state := &createCmdState{}
 
-	cmd.RunE = state.runE
-	cmd.MarkPersistentFlagRequired("name")
-
 	cmd.PersistentFlags().StringVar(&state.KubernetesVersion, "kubernetes-version", DefaultKubernetesVersion, "Kubernetes version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
@@ -61,6 +58,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
 	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 512, "Node memory (in MiB)")
 
+	cmd.RunE = state.runE
 	return cmd
 }
 
