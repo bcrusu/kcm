@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	RootCmd.AddCommand(createCmd)
+	RootCmd.AddCommand(newCreateCmd())
 	RootCmd.AddCommand(newRemoveCmd())
 	RootCmd.AddCommand(switchCmd)
 }

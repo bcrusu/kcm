@@ -12,38 +12,59 @@ const DefaultKubernetesVersion = "1.6.4"
 const DefaultCoreOSVersion = "1353.7.0"
 const DefaultCoreOsChannel = "stable"
 
-var (
-	kubernetesVersion  = createCmd.PersistentFlags().String("kubernetes-version", DefaultKubernetesVersion, "Kubernetes version to use")
-	coreOSVersion      = createCmd.PersistentFlags().String("coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
-	coreOSChannel      = createCmd.PersistentFlags().String("coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
-	libvirtStoragePool = createCmd.PersistentFlags().String("libvirt-pool", "default", "Libvirt storage pool")
-	clusterName        = createCmd.PersistentFlags().String("name", "kube", "Cluster name")
-	masterCount        = createCmd.PersistentFlags().Uint("master-count", 1, "Initial number of masters in the cluster")
-	nodesCount         = createCmd.PersistentFlags().Uint("node-count", 3, "Initial number of nodes in the cluster")
-	kubernetesNetwork  = createCmd.PersistentFlags().String("kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
-	sshPublicKey       = createCmd.PersistentFlags().String("ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
-	start              = createCmd.PersistentFlags().Bool("start", false, "Start the cluster immediately")
-	ipv4CIDR           = createCmd.PersistentFlags().String("ipv4-cidr", "10.11.0.1/24", "Libvirt network IPv4 CIDR")
-	ipv6CIDR           = createCmd.PersistentFlags().String("ipv6-cidr", "", "Libvirt network IPv6 CIDR")
-	masterCPUs         = createCmd.PersistentFlags().Uint("master-cpu", 2, "Master node allocated CPUs")
-	masterMemory       = createCmd.PersistentFlags().Uint("master-memory", 1024, "Master node memory (in MiB)")
-	nondeCPUs          = createCmd.PersistentFlags().Uint("node-cpu", 1, "Node allocated CPUs")
-	nodeMemory         = createCmd.PersistentFlags().Uint("node-memory", 512, "Node memory (in MiB)")
-)
-
-func init() {
-	createCmd.RunE = runE
-	createCmd.MarkPersistentFlagRequired("name")
+type createCmdState struct {
+	KubernetesVersion  string
+	CoreOSVersion      string
+	CoreOSChannel      string
+	LibvirtStoragePool string
+	ClusterName        string
+	MasterCount        uint
+	NodesCount         uint
+	KubernetesNetwork  string
+	SSHPublicKey       string
+	Start              bool
+	IPv4CIDR           string
+	IPv6CIDR           string
+	MasterCPUs         uint
+	MasterMemory       uint
+	NondeCPUs          uint
+	NodeMemory         uint
 }
 
-var createCmd = &cobra.Command{
-	Use:          "create",
-	Short:        "Create a new cluster",
-	SilenceUsage: true,
+func newCreateCmd() *cobra.Command {
+	var cmd = &cobra.Command{
+		Use:          "create",
+		Short:        "Create a new cluster",
+		SilenceUsage: true,
+	}
+
+	state := createCmdState{}
+
+	cmd.RunE = state.runE
+	cmd.MarkPersistentFlagRequired("name")
+
+	cmd.PersistentFlags().StringVar(&state.KubernetesVersion, "kubernetes-version", DefaultKubernetesVersion, "Kubernetes version to use")
+	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
+	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
+	cmd.PersistentFlags().StringVar(&state.LibvirtStoragePool, "libvirt-pool", "default", "Libvirt storage pool")
+	cmd.PersistentFlags().StringVar(&state.ClusterName, "name", "kube", "Cluster name")
+	cmd.PersistentFlags().UintVar(&state.MasterCount, "master-count", 1, "Initial number of masters in the cluster")
+	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 3, "Initial number of nodes in the cluster")
+	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
+	cmd.PersistentFlags().StringVar(&state.SSHPublicKey, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
+	cmd.PersistentFlags().BoolVar(&state.Start, "start", false, "Start the cluster immediately")
+	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.11.0.1/24", "Libvirt network IPv4 CIDR")
+	cmd.PersistentFlags().StringVar(&state.IPv6CIDR, "ipv6-cidr", "", "Libvirt network IPv6 CIDR")
+	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 2, "Master node allocated CPUs")
+	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 1024, "Master node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
+	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 512, "Node memory (in MiB)")
+
+	return cmd
 }
 
-func runE(cmd *cobra.Command, args []string) error {
-	cluster := createClusterDefinition()
+func (s createCmdState) runE(cmd *cobra.Command, args []string) error {
+	cluster := s.createClusterDefinition()
 	// lightweight validation - empty strings, no nodes defined, etc.
 	if err := cluster.Validate(); err != nil {
 		return err
@@ -89,42 +110,42 @@ func runE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createClusterDefinition() repository.Cluster {
+func (s createCmdState) createClusterDefinition() repository.Cluster {
 	cluster := repository.Cluster{
-		Name:                 *clusterName,
-		KubernetesVersion:    *kubernetesVersion,
-		CoreOSChannel:        *coreOSChannel,
-		CoreOSVersion:        *coreOSVersion,
-		StoragePool:          *libvirtStoragePool,
-		BackingStorageVolume: coreOSStorageVolumeName(*coreOSVersion),
+		Name:                 s.ClusterName,
+		KubernetesVersion:    s.KubernetesVersion,
+		CoreOSChannel:        s.CoreOSChannel,
+		CoreOSVersion:        s.CoreOSVersion,
+		StoragePool:          s.LibvirtStoragePool,
+		BackingStorageVolume: coreOSStorageVolumeName(s.CoreOSVersion),
 		Network: repository.Network{
-			Name:     libvirtNetworkName(*clusterName),
-			IPv4CIDR: *ipv4CIDR,
-			IPv6CIDR: *ipv6CIDR,
+			Name:     libvirtNetworkName(s.ClusterName),
+			IPv4CIDR: s.IPv4CIDR,
+			IPv6CIDR: s.IPv6CIDR,
 		},
 	}
 
-	for i := uint(1); i <= *masterCount; i++ {
-		domainName := libvirtDomainName(*clusterName, true, i)
+	for i := uint(1); i <= s.MasterCount; i++ {
+		domainName := libvirtDomainName(s.ClusterName, true, i)
 
 		cluster.Masters = append(cluster.Masters, repository.Node{
 			Domain:        domainName,
-			StoragePool:   *libvirtStoragePool,
+			StoragePool:   s.LibvirtStoragePool,
 			StorageVolume: libvirtStorageVolumeName(domainName),
-			CPUs:          *masterCPUs,
-			MemoryMiB:     *masterMemory,
+			CPUs:          s.MasterCPUs,
+			MemoryMiB:     s.MasterMemory,
 		})
 	}
 
-	for i := uint(1); i <= *nodesCount; i++ {
-		domainName := libvirtDomainName(*clusterName, false, i)
+	for i := uint(1); i <= s.NodesCount; i++ {
+		domainName := libvirtDomainName(s.ClusterName, false, i)
 
 		cluster.Nodes = append(cluster.Nodes, repository.Node{
 			Domain:        domainName,
-			StoragePool:   *libvirtStoragePool,
+			StoragePool:   s.LibvirtStoragePool,
 			StorageVolume: libvirtStorageVolumeName(domainName),
-			CPUs:          *nondeCPUs,
-			MemoryMiB:     *nodeMemory,
+			CPUs:          s.NondeCPUs,
+			MemoryMiB:     s.NodeMemory,
 		})
 	}
 
