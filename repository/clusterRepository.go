@@ -12,7 +12,7 @@ import (
 const currentClusterFileName = "CURRENT"
 
 type ClusterRepository interface {
-	Current() (*string, error)
+	Current() (*Cluster, error)
 	SetCurrent(name string) error
 	Load(name string) (*Cluster, error)
 	LoadAll() ([]*Cluster, error)
@@ -22,7 +22,8 @@ type ClusterRepository interface {
 }
 
 type clusterRepository struct {
-	path string
+	path           string
+	currentCluster string //TODO
 }
 
 func New(path string) (ClusterRepository, error) {
@@ -66,7 +67,7 @@ func (r *clusterRepository) Load(name string) (*Cluster, error) {
 	return loadCluster(clusterPath)
 }
 
-func (r *clusterRepository) Current() (*string, error) {
+func (r *clusterRepository) Current() (*Cluster, error) {
 	filePath := path.Join(r.path, currentClusterFileName)
 	bytes, err := ioutil.ReadFile(filePath)
 	if err != nil {
@@ -77,8 +78,7 @@ func (r *clusterRepository) Current() (*string, error) {
 		return nil, errors.Wrap(err, "repository: failed to load current cluster")
 	}
 
-	clusterName := string(bytes)
-	return &clusterName, nil
+	return r.Load(string(bytes))
 }
 
 func (r *clusterRepository) SetCurrent(name string) error {

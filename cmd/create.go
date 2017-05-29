@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/bcrusu/kcm/cmd/create"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
@@ -33,12 +35,12 @@ type createCmdState struct {
 
 func newCreateCmd() *cobra.Command {
 	var cmd = &cobra.Command{
-		Use:          "create",
+		Use:          "create CLUSTER_NAME",
 		Short:        "Create a new cluster",
 		SilenceUsage: true,
 	}
 
-	state := createCmdState{}
+	state := &createCmdState{}
 
 	cmd.RunE = state.runE
 	cmd.MarkPersistentFlagRequired("name")
@@ -47,7 +49,6 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
 	cmd.PersistentFlags().StringVar(&state.LibvirtStoragePool, "libvirt-pool", "default", "Libvirt storage pool")
-	cmd.PersistentFlags().StringVar(&state.ClusterName, "name", "kube", "Cluster name")
 	cmd.PersistentFlags().UintVar(&state.MasterCount, "master-count", 1, "Initial number of masters in the cluster")
 	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 3, "Initial number of nodes in the cluster")
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
@@ -55,15 +56,21 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVar(&state.Start, "start", false, "Start the cluster immediately")
 	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.11.0.1/24", "Libvirt network IPv4 CIDR")
 	cmd.PersistentFlags().StringVar(&state.IPv6CIDR, "ipv6-cidr", "", "Libvirt network IPv6 CIDR")
-	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 2, "Master node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 1024, "Master node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
+	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 512, "Master node memory (in MiB)")
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
 	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 512, "Node memory (in MiB)")
 
 	return cmd
 }
 
-func (s createCmdState) runE(cmd *cobra.Command, args []string) error {
+func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return errors.New("invalid command arguments")
+	}
+
+	s.ClusterName = args[0]
+
 	cluster := s.createClusterDefinition()
 	// lightweight validation - empty strings, no nodes defined, etc.
 	if err := cluster.Validate(); err != nil {
@@ -110,7 +117,7 @@ func (s createCmdState) runE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (s createCmdState) createClusterDefinition() repository.Cluster {
+func (s *createCmdState) createClusterDefinition() repository.Cluster {
 	cluster := repository.Cluster{
 		Name:                 s.ClusterName,
 		KubernetesVersion:    s.KubernetesVersion,
@@ -126,7 +133,7 @@ func (s createCmdState) createClusterDefinition() repository.Cluster {
 	}
 
 	for i := uint(1); i <= s.MasterCount; i++ {
-		domainName := libvirtDomainName(s.ClusterName, true, i)
+		domainName := libvirtDomainName(s.ClusterName, true, strconv.FormatUint(uint64(i), 10))
 
 		cluster.Masters = append(cluster.Masters, repository.Node{
 			Domain:        domainName,
@@ -138,7 +145,7 @@ func (s createCmdState) createClusterDefinition() repository.Cluster {
 	}
 
 	for i := uint(1); i <= s.NodesCount; i++ {
-		domainName := libvirtDomainName(s.ClusterName, false, i)
+		domainName := libvirtDomainName(s.ClusterName, false, strconv.FormatUint(uint64(i), 10))
 
 		cluster.Nodes = append(cluster.Nodes, repository.Node{
 			Domain:        domainName,

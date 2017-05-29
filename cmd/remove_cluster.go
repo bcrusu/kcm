@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"github.com/bcrusu/kcm/cmd/remove"
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 func newRemoveClusterCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "cluster",
-		Aliases:      []string{"cluster", "c"},
+		Use:          "cluster CLUSTER_NAME",
+		Aliases:      []string{"c"},
 		Short:        "Remove the specified clusters",
 		SilenceUsage: true,
 	}
@@ -20,8 +19,24 @@ func newRemoveClusterCmd() *cobra.Command {
 }
 
 func runRemoveClusterCmdE(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		return errors.New("specify the cluster names to remove")
+	if len(args) != 1 {
+		return errors.New("invalid command arguments")
+	}
+
+	clusterName := args[0]
+
+	clusterRepository, err := newClusterRepository()
+	if err != nil {
+		return err
+	}
+
+	cluster, err := clusterRepository.Load(clusterName)
+	if err != nil {
+		return err
+	}
+
+	if cluster == nil {
+		return errors.Errorf("could not find cluster '%s'", cluster.Name)
 	}
 
 	connection, err := connectLibvirt()
@@ -30,29 +45,12 @@ func runRemoveClusterCmdE(cmd *cobra.Command, args []string) error {
 	}
 	defer connection.Close()
 
-	clusterRepository, err := newClusterRepository()
-	if err != nil {
-		return err
+	if err := remove.RemoveCluster(connection, *cluster); err != nil {
+		return errors.Wrapf(err, "failed to remove cluster libvirt objects '%s'", clusterName)
 	}
 
-	for _, name := range args {
-		cluster, err := clusterRepository.Load(name)
-		if err != nil {
-			return err
-		}
-
-		if cluster == nil {
-			glog.Warningf("could not find cluster '%s'", name)
-			return nil
-		}
-
-		if err := remove.RemoveCluster(connection, *cluster); err != nil {
-			return errors.Wrapf(err, "failed to remove cluster libvirt objects '%s'", name)
-		}
-
-		if err := clusterRepository.Remove(cluster.Name); err != nil {
-			return errors.Wrapf(err, "failed to remove cluster data '%s'", name)
-		}
+	if err := clusterRepository.Remove(cluster.Name); err != nil {
+		return errors.Wrapf(err, "failed to remove cluster data '%s'", clusterName)
 	}
 
 	return nil

@@ -118,6 +118,48 @@ func (c *Cluster) Validate() error {
 	return nil
 }
 
+func (c *Cluster) Node(domain string) (Node, bool) {
+	for _, node := range c.Nodes {
+		if node.Domain == domain {
+			return node, true
+		}
+	}
+
+	return Node{}, false
+}
+
+func (c *Cluster) RemoveNode(domain string) {
+	var filtered []Node
+	for _, node := range c.Nodes {
+		if node.Domain != domain {
+			filtered = append(filtered, node)
+		}
+	}
+
+	c.Nodes = filtered
+}
+
+func (c *Cluster) Master(domain string) (Node, bool) {
+	for _, node := range c.Masters {
+		if node.Domain == domain {
+			return node, true
+		}
+	}
+
+	return Node{}, false
+}
+
+func (c *Cluster) RemoveMaster(domain string) {
+	var filtered []Node
+	for _, node := range c.Masters {
+		if node.Domain != domain {
+			filtered = append(filtered, node)
+		}
+	}
+
+	c.Masters = filtered
+}
+
 func (n *Node) validate() error {
 	if n == nil {
 		return errors.Errorf("repository: nil node")
