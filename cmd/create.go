@@ -80,9 +80,11 @@ func runE(cmd *cobra.Command, args []string) error {
 
 	//TODO: create filesystems to be mounted
 
-	// if err := create.CreateLibvirtObjects(connection, cluster); err != nil {
-	// 	return err
-	// }
+	if err := create.CreateLibvirtObjects(connection, cluster); err != nil {
+		return err
+	}
+
+	// TODO: make the cluster active
 
 	return nil
 }

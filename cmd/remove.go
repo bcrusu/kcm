@@ -2,11 +2,16 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-var removeCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "Remove the current or specified cluster (delete all data)",
-	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
+func newRemoveCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "remove",
+		Aliases:      []string{"remove", "rm"},
+		Short:        "Removes the specified object (deletes all data)",
+		SilenceUsage: true,
+	}
+
+	cmd.AddCommand(newRemoveClusterCmd())
+	//cmd.AddCommand(newRemoveNodeCmd())
+
+	return cmd
 }

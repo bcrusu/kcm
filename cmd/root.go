@@ -10,13 +10,13 @@ import (
 const LibvirtDefaultURI = "qemu:///system"
 
 var (
-	dataDir    = RootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "Cluster repository path. Cluster definitions will be placed here.")
+	dataDir    = RootCmd.PersistentFlags().String("data-dir", getDefaultDataDir(), "kcm data directory")
 	libvirtURI = RootCmd.PersistentFlags().String("libvirt-uri", LibvirtDefaultURI, "Libvirt URI")
 )
 
 func init() {
 	RootCmd.AddCommand(createCmd)
-	RootCmd.AddCommand(removeCmd)
+	RootCmd.AddCommand(newRemoveCmd())
 	RootCmd.AddCommand(switchCmd)
 }
 

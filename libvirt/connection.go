@@ -100,40 +100,7 @@ func (c *Connection) GetDomain(domain string) (*libvirtxml.Domain, error) {
 }
 
 func (c *Connection) ListAllDomains() ([]libvirtxml.Domain, error) {
-	var result []libvirtxml.Domain
-
-	flags := libvirt.CONNECT_LIST_DOMAINS_ACTIVE |
-		libvirt.CONNECT_LIST_DOMAINS_INACTIVE |
-		libvirt.CONNECT_LIST_DOMAINS_PERSISTENT |
-		libvirt.CONNECT_LIST_DOMAINS_TRANSIENT |
-		libvirt.CONNECT_LIST_DOMAINS_RUNNING |
-		libvirt.CONNECT_LIST_DOMAINS_PAUSED |
-		libvirt.CONNECT_LIST_DOMAINS_SHUTOFF |
-		libvirt.CONNECT_LIST_DOMAINS_OTHER |
-		libvirt.CONNECT_LIST_DOMAINS_MANAGEDSAVE |
-		libvirt.CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE |
-		libvirt.CONNECT_LIST_DOMAINS_AUTOSTART |
-		libvirt.CONNECT_LIST_DOMAINS_NO_AUTOSTART |
-		libvirt.CONNECT_LIST_DOMAINS_HAS_SNAPSHOT |
-		libvirt.CONNECT_LIST_DOMAINS_NO_SNAPSHOT
-
-	domains, err := c.connect.ListAllDomains(flags)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list domains")
-	}
-
-	for _, domain := range domains {
-		domainXML, err := getDomainXML(&domain)
-		if err != nil {
-			return nil, err
-		}
-
-		result = append(result, *domainXML)
-		domain.Free()
-	}
-
-	//TODO(bcrusu): cache the result
-	return result, nil
+	return listAllDomains(c.connect)
 }
 
 func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
@@ -232,4 +199,130 @@ func (c *Connection) DefineDomain(params DefineDomainParams) error {
 	}
 
 	return defineDomain(c.connect, params, qemuEmulatorPath)
+}
+
+func (c *Connection) UndefineDomain(name string) error {
+	domain, err := lookupDomain(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer domain.Free()
+
+	flags := libvirt.DOMAIN_UNDEFINE_MANAGED_SAVE |
+		libvirt.DOMAIN_UNDEFINE_NVRAM |
+		libvirt.DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+
+	if err := domain.UndefineFlags(flags); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to undefine domain '%s'", name)
+	}
+
+	return nil
+}
+
+func (c *Connection) DestroyDomain(name string) error {
+	domain, err := lookupDomain(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer domain.Free()
+
+	if err := domain.DestroyFlags(libvirt.DomainDestroyFlags(0)); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to destroy domain '%s'", name)
+	}
+
+	return nil
+}
+
+func (c *Connection) ShutdownDomain(name string) error {
+	domain, err := lookupDomain(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer domain.Free()
+
+	if err := domain.Shutdown(); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to shutdown domain '%s'", name)
+	}
+
+	return nil
+}
+
+func (c *Connection) DomainIsActive(name string) (bool, error) {
+	domain, err := lookupDomain(c.connect, name)
+	if err != nil {
+		return false, err
+	}
+	defer domain.Free()
+
+	active, err := domain.IsActive()
+
+	if err != nil {
+		return false, errors.Wrapf(err, "libvirt: failed to determine if domain is active '%s'", name)
+	}
+
+	return active, nil
+}
+
+func (c *Connection) DeleteStorageVolume(pool, name string) error {
+	p, err := lookupStoragePool(c.connect, pool)
+	if err != nil {
+		return err
+	}
+	defer p.Free()
+
+	volume, err := lookupStorageVolume(p, name)
+	if err != nil {
+		return err
+	}
+	defer volume.Free()
+
+	if err := volume.Delete(libvirt.STORAGE_VOL_DELETE_NORMAL); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to delete storage volume '%s'", name)
+	}
+
+	return nil
+}
+
+func (c *Connection) NetworkIsActive(name string) (bool, error) {
+	n, err := lookupNetwork(c.connect, name)
+	if err != nil {
+		return false, err
+	}
+	defer n.Free()
+
+	active, err := n.IsActive()
+
+	if err != nil {
+		return false, errors.Wrapf(err, "libvirt: failed to determine if network active '%s'", name)
+	}
+
+	return active, nil
+}
+
+func (c *Connection) DestroyNetwork(name string) error {
+	n, err := lookupNetwork(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer n.Free()
+
+	if err := n.Destroy(); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to destroy network '%s'", name)
+	}
+
+	return nil
+}
+
+func (c *Connection) UndefineNetwork(name string) error {
+	n, err := lookupNetwork(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer n.Free()
+
+	if err := n.Undefine(); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to undefine network '%s'", name)
+	}
+
+	return nil
 }

@@ -134,3 +134,40 @@ func defineDomain(connect *libvirt.Connect, params DefineDomainParams, emulatorP
 
 	return nil
 }
+
+func listAllDomains(connect *libvirt.Connect) ([]libvirtxml.Domain, error) {
+	var result []libvirtxml.Domain
+
+	flags := libvirt.CONNECT_LIST_DOMAINS_ACTIVE |
+		libvirt.CONNECT_LIST_DOMAINS_INACTIVE |
+		libvirt.CONNECT_LIST_DOMAINS_PERSISTENT |
+		libvirt.CONNECT_LIST_DOMAINS_TRANSIENT |
+		libvirt.CONNECT_LIST_DOMAINS_RUNNING |
+		libvirt.CONNECT_LIST_DOMAINS_PAUSED |
+		libvirt.CONNECT_LIST_DOMAINS_SHUTOFF |
+		libvirt.CONNECT_LIST_DOMAINS_OTHER |
+		libvirt.CONNECT_LIST_DOMAINS_MANAGEDSAVE |
+		libvirt.CONNECT_LIST_DOMAINS_NO_MANAGEDSAVE |
+		libvirt.CONNECT_LIST_DOMAINS_AUTOSTART |
+		libvirt.CONNECT_LIST_DOMAINS_NO_AUTOSTART |
+		libvirt.CONNECT_LIST_DOMAINS_HAS_SNAPSHOT |
+		libvirt.CONNECT_LIST_DOMAINS_NO_SNAPSHOT
+
+	domains, err := connect.ListAllDomains(flags)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list domains")
+	}
+
+	for _, domain := range domains {
+		domainXML, err := getDomainXML(&domain)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, *domainXML)
+		domain.Free()
+	}
+
+	//TODO(bcrusu): cache the result
+	return result, nil
+}
