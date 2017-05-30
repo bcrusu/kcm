@@ -26,3 +26,8 @@ func (s StorageVolumeBackingStore) Format() StorageVolumeTargetFormat {
 	node := s.node.ensureNode(nameForLocal("format"))
 	return newStorageVolumeTargetFormat(node)
 }
+
+func (s StorageVolumeBackingStore) Permissions() StorageVolumePermissions {
+	node := s.node.ensureNode(nameForLocal("permissions"))
+	return newStorageVolumePermissions(node)
+}

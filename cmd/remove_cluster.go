@@ -14,11 +14,11 @@ func newRemoveClusterCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
-	cmd.RunE = runRemoveClusterCmdE
+	cmd.RunE = removeClusterCmdRunE
 	return cmd
 }
 
-func runRemoveClusterCmdE(cmd *cobra.Command, args []string) error {
+func removeClusterCmdRunE(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return errors.New("invalid command arguments")
 	}
@@ -45,7 +45,7 @@ func runRemoveClusterCmdE(cmd *cobra.Command, args []string) error {
 	}
 	defer connection.Close()
 
-	if err := remove.RemoveCluster(connection, *cluster); err != nil {
+	if err := remove.Cluster(connection, *cluster); err != nil {
 		return errors.Wrapf(err, "failed to remove cluster libvirt objects '%s'", clusterName)
 	}
 

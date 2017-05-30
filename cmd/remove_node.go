@@ -75,7 +75,7 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 
 	for domainName := range toRemove {
 		node, _ := cluster.Node(domainName)
-		if err := remove.RemoveNode(connection, node); err != nil {
+		if err := remove.Node(connection, node); err != nil {
 			return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", domainName, cluster.Name)
 		}
 

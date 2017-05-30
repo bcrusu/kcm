@@ -33,6 +33,19 @@ func lookupStoragePool(connect *libvirt.Connect, lookup string) (*libvirt.Storag
 	return pool, nil
 }
 
+func lookupStoragePoolStrict(connect *libvirt.Connect, lookup string) (*libvirt.StoragePool, error) {
+	pool, err := lookupStoragePool(connect, lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if pool == nil {
+		return nil, errors.Errorf("libvirt: could not find storage pool '%s'", lookup)
+	}
+
+	return pool, nil
+}
+
 func getStoragePoolXML(pool *libvirt.StoragePool) (*libvirtxml.StoragePool, error) {
 	xml, err := pool.GetXMLDesc(libvirt.StorageXMLFlags(0))
 	if err != nil {

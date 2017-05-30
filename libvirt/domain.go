@@ -11,8 +11,7 @@ type DefineDomainParams struct {
 	Name                string
 	Network             string
 	NetworkInterfaceMAC string
-	StoragePool         string
-	StorageVolume       string
+	StorageVolumePath   string
 	FilesystemMounts    map[string]string // map[HOST_PATH]GUEST_PATH
 	MemoryMiB           uint              // max domain memory
 	CPUs                uint              // number of CPU cores
@@ -40,6 +39,19 @@ func lookupDomain(connect *libvirt.Connect, lookup string) (*libvirt.Domain, err
 
 		}
 		return nil, errors.Wrapf(err, "domain lookup failed '%s'", lookup)
+	}
+
+	return domain, nil
+}
+
+func lookupDomainStrict(connect *libvirt.Connect, lookup string) (*libvirt.Domain, error) {
+	domain, err := lookupDomain(connect, lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if domain == nil {
+		return nil, errors.Errorf("libvirt: could not find domain '%s'", lookup)
 	}
 
 	return domain, nil
@@ -87,15 +99,13 @@ func defineDomain(connect *libvirt.Connect, params DefineDomainParams, emulatorP
 
 	{
 		disk := domainXML.Devices().NewDisk()
-		disk.SetType("volume")
+		disk.SetType("file")
 		disk.SetDevice("disk")
 
 		disk.Driver().SetName("qemu")
 		disk.Driver().SetType("qcow2")
 
-		disk.Source().SetPool(params.StoragePool)
-		disk.Source().SetVolume(params.StorageVolume)
-
+		disk.Source().SetFile(params.StorageVolumePath)
 		disk.Target().SetDev("vda")
 		disk.Target().SetBus("virtio")
 	}

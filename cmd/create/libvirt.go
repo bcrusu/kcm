@@ -106,12 +106,16 @@ func defineLibvirtNetwork(connection *libvirt.Connection, network repository.Net
 }
 
 func defineLibvirtDomain(connection *libvirt.Connection, node repository.Node, networkName, networkInterfaceMAC string) error {
+	storageVolume, err := connection.GetStorageVolume(node.StoragePool, node.StorageVolume)
+	if err != nil {
+		return err
+	}
+
 	params := libvirt.DefineDomainParams{
 		Name:                node.Domain,
 		Network:             networkName,
 		NetworkInterfaceMAC: networkInterfaceMAC,
-		StoragePool:         node.StoragePool,
-		StorageVolume:       node.StorageVolume,
+		StorageVolumePath:   storageVolume.Target().Path(),
 		MemoryMiB:           node.MemoryMiB,
 		CPUs:                node.CPUs,
 		//TODO: FilesystemMounts    :

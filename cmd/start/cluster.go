@@ -1,4 +1,4 @@
-package remove
+package start
 
 import (
 	"github.com/bcrusu/kcm/libvirt"
@@ -6,10 +6,8 @@ import (
 )
 
 func Cluster(connection *libvirt.Connection, cluster repository.Cluster) error {
-	for _, node := range cluster.Nodes {
-		if err := Node(connection, node); err != nil {
-			return err
-		}
+	if err := Network(connection, cluster.Network); err != nil {
+		return err
 	}
 
 	for _, node := range cluster.Masters {
@@ -18,5 +16,11 @@ func Cluster(connection *libvirt.Connection, cluster repository.Cluster) error {
 		}
 	}
 
-	return Network(connection, cluster.Network)
+	for _, node := range cluster.Nodes {
+		if err := Node(connection, node); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

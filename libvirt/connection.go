@@ -64,7 +64,7 @@ func (c *Connection) GetStoragePool(pool string) (*libvirtxml.StoragePool, error
 }
 
 func (c *Connection) GetStorageVolume(pool, volume string) (*libvirtxml.StorageVolume, error) {
-	p, err := c.findStoragePool(pool)
+	p, err := lookupStoragePoolStrict(c.connect, pool)
 	if err != nil {
 		return nil, err
 	}
@@ -104,25 +104,12 @@ func (c *Connection) ListAllDomains() ([]libvirtxml.Domain, error) {
 }
 
 func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
-	p, err := c.findStoragePool(pool)
+	p, err := lookupStoragePoolStrict(c.connect, pool)
 	if err != nil {
 		return err
 	}
 
 	return createStorageVolume(p, name, backingVolumeName)
-}
-
-func (c *Connection) findStoragePool(name string) (*libvirt.StoragePool, error) {
-	pool, err := lookupStoragePool(c.connect, name)
-	if err != nil {
-		return nil, err
-	}
-
-	if pool == nil {
-		return nil, errors.Errorf("could not find storage pool '%s'", pool)
-	}
-
-	return pool, nil
 }
 
 func (c *Connection) GenerateUniqueMACAddresses(count int) ([]string, error) {
@@ -202,7 +189,7 @@ func (c *Connection) DefineDomain(params DefineDomainParams) error {
 }
 
 func (c *Connection) UndefineDomain(name string) error {
-	domain, err := lookupDomain(c.connect, name)
+	domain, err := lookupDomainStrict(c.connect, name)
 	if err != nil {
 		return err
 	}
@@ -220,7 +207,7 @@ func (c *Connection) UndefineDomain(name string) error {
 }
 
 func (c *Connection) DestroyDomain(name string) error {
-	domain, err := lookupDomain(c.connect, name)
+	domain, err := lookupDomainStrict(c.connect, name)
 	if err != nil {
 		return err
 	}
@@ -233,8 +220,22 @@ func (c *Connection) DestroyDomain(name string) error {
 	return nil
 }
 
+func (c *Connection) CreateDomain(name string) error {
+	domain, err := lookupDomainStrict(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer domain.Free()
+
+	if err := domain.Create(); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to create domain '%s'", name)
+	}
+
+	return nil
+}
+
 func (c *Connection) ShutdownDomain(name string) error {
-	domain, err := lookupDomain(c.connect, name)
+	domain, err := lookupDomainStrict(c.connect, name)
 	if err != nil {
 		return err
 	}
@@ -248,7 +249,7 @@ func (c *Connection) ShutdownDomain(name string) error {
 }
 
 func (c *Connection) DomainIsActive(name string) (bool, error) {
-	domain, err := lookupDomain(c.connect, name)
+	domain, err := lookupDomainStrict(c.connect, name)
 	if err != nil {
 		return false, err
 	}
@@ -264,7 +265,7 @@ func (c *Connection) DomainIsActive(name string) (bool, error) {
 }
 
 func (c *Connection) DeleteStorageVolume(pool, name string) error {
-	p, err := lookupStoragePool(c.connect, pool)
+	p, err := lookupStoragePoolStrict(c.connect, pool)
 	if err != nil {
 		return err
 	}
@@ -273,6 +274,10 @@ func (c *Connection) DeleteStorageVolume(pool, name string) error {
 	volume, err := lookupStorageVolume(p, name)
 	if err != nil {
 		return err
+	}
+
+	if volume == nil {
+		return nil
 	}
 	defer volume.Free()
 
@@ -284,7 +289,7 @@ func (c *Connection) DeleteStorageVolume(pool, name string) error {
 }
 
 func (c *Connection) NetworkIsActive(name string) (bool, error) {
-	n, err := lookupNetwork(c.connect, name)
+	n, err := lookupNetworkStrict(c.connect, name)
 	if err != nil {
 		return false, err
 	}
@@ -300,7 +305,7 @@ func (c *Connection) NetworkIsActive(name string) (bool, error) {
 }
 
 func (c *Connection) DestroyNetwork(name string) error {
-	n, err := lookupNetwork(c.connect, name)
+	n, err := lookupNetworkStrict(c.connect, name)
 	if err != nil {
 		return err
 	}
@@ -313,8 +318,22 @@ func (c *Connection) DestroyNetwork(name string) error {
 	return nil
 }
 
+func (c *Connection) CreateNetwork(name string) error {
+	n, err := lookupNetworkStrict(c.connect, name)
+	if err != nil {
+		return err
+	}
+	defer n.Free()
+
+	if err := n.Create(); err != nil {
+		return errors.Wrapf(err, "libvirt: failed to create network '%s'", name)
+	}
+
+	return nil
+}
+
 func (c *Connection) UndefineNetwork(name string) error {
-	n, err := lookupNetwork(c.connect, name)
+	n, err := lookupNetworkStrict(c.connect, name)
 	if err != nil {
 		return err
 	}

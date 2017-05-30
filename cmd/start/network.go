@@ -1,8 +1,9 @@
-package remove
+package start
 
 import (
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
+	"github.com/pkg/errors"
 )
 
 func Network(connection *libvirt.Connection, network repository.Network) error {
@@ -14,8 +15,7 @@ func Network(connection *libvirt.Connection, network repository.Network) error {
 	}
 
 	if net == nil {
-		// network does not exist
-		return nil
+		return errors.Errorf("cannot find network '%s'", name)
 	}
 
 	active, err := connection.NetworkIsActive(name)
@@ -24,10 +24,9 @@ func Network(connection *libvirt.Connection, network repository.Network) error {
 	}
 
 	if active {
-		if err := connection.DestroyNetwork(name); err != nil {
-			return err
-		}
+		// network is already running
+		return nil
 	}
 
-	return connection.UndefineNetwork(name)
+	return connection.CreateNetwork(name)
 }

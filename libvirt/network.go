@@ -42,6 +42,19 @@ func lookupNetwork(connect *libvirt.Connect, lookup string) (*libvirt.Network, e
 	return net, nil
 }
 
+func lookupNetworkStrict(connect *libvirt.Connect, lookup string) (*libvirt.Network, error) {
+	net, err := lookupNetwork(connect, lookup)
+	if err != nil {
+		return nil, err
+	}
+
+	if net == nil {
+		return nil, errors.Errorf("libvirt: could not find network '%s'", lookup)
+	}
+
+	return net, nil
+}
+
 func getNetworkXML(network *libvirt.Network) (*libvirtxml.Network, error) {
 	xml, err := network.GetXMLDesc(libvirt.NetworkXMLFlags(0))
 	if err != nil {

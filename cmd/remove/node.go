@@ -5,7 +5,7 @@ import (
 	"github.com/bcrusu/kcm/repository"
 )
 
-func RemoveNode(connection *libvirt.Connection, node repository.Node) error {
+func Node(connection *libvirt.Connection, node repository.Node) error {
 	domainName := node.Domain
 
 	domain, err := connection.GetDomain(domainName)
