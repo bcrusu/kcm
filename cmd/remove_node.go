@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/bcrusu/kcm/cmd/remove"
+	"github.com/bcrusu/kcm/repository"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -9,27 +10,31 @@ import (
 
 type removeNodeCmdState struct {
 	ClusterName string
+	IsMaster    bool
 }
 
 func newRemoveNodeCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "node NODE_NAMES",
+		Use:          "node NODE_NAME",
 		Aliases:      []string{"n"},
-		Short:        "Remove the specified cluster nodes",
+		Short:        "Remove the specified cluster node",
 		SilenceUsage: true,
 	}
 
 	state := &removeNodeCmdState{}
 	cmd.PersistentFlags().StringVarP(&state.ClusterName, "cluster", "c", "", "Cluster that owns the node")
+	cmd.PersistentFlags().BoolVarP(&state.IsMaster, "master", "m", false, "Remove master node")
 
 	cmd.RunE = state.runE
 	return cmd
 }
 
 func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
-	if len(args) == 0 {
-		return errors.New("invalid command arguments - no node specified")
+	if len(args) != 1 {
+		return errors.New("invalid command arguments")
 	}
+
+	nodeName := args[0]
 
 	clusterRepository, err := newClusterRepository()
 	if err != nil {
@@ -41,31 +46,29 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	existing := make(map[string]bool)
+	nodeMap := make(map[string]*repository.Node)
 	for _, node := range cluster.Nodes {
-		existing[node.Domain] = true
+		nodeMap[node.Domain] = &node
 	}
 
-	toRemove := make(map[string]bool)
-	for _, arg := range args {
-		if _, ok := existing[arg]; ok {
-			toRemove[arg] = true
-			continue
-		}
+	var toRemove *repository.Node
 
+	if node, ok := nodeMap[nodeName]; ok {
+		toRemove = node
+	} else {
 		// try the 'short name'
-		tmp := libvirtDomainName(cluster.Name, false, arg)
-		if _, ok := existing[tmp]; ok {
-			toRemove[tmp] = true
-			continue
+		tmp := libvirtDomainName(cluster.Name, s.IsMaster, nodeName)
+		if node, ok := nodeMap[tmp]; ok {
+			toRemove = node
 		}
-
-		glog.Warningf("cluster '%s' does not contain node '%s'", cluster.Name, arg)
 	}
 
-	if len(toRemove) == 0 {
+	if toRemove == nil {
+		glog.Warningf("cluster '%s' does not contain node '%s'", cluster.Name, nodeName)
 		return nil
 	}
+
+	//TODO: do not allow to remove last node?
 
 	connection, err := connectLibvirt()
 	if err != nil {
@@ -73,17 +76,13 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 	}
 	defer connection.Close()
 
-	for domainName := range toRemove {
-		node, _ := cluster.Node(domainName)
-		if err := remove.Node(connection, node); err != nil {
-			return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", domainName, cluster.Name)
-		}
+	if err := remove.Node(connection, *toRemove); err != nil {
+		return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", toRemove.Domain, cluster.Name)
+	}
 
-		// persist the new cluster state after each node removal to minimize the potential diff beteen state in repository vs. state in libvirt
-		cluster.RemoveNode(domainName)
-		if err := clusterRepository.Save(*cluster); err != nil {
-			return errors.Wrapf(err, "failed to persist state for cluster '%s' after removing node '%s'", cluster.Name, domainName)
-		}
+	cluster.RemoveNode(toRemove.Domain)
+	if err := clusterRepository.Save(*cluster); err != nil {
+		return errors.Wrapf(err, "failed to persist state for cluster '%s' after removing node '%s'", cluster.Name, toRemove.Domain)
 	}
 
 	return nil

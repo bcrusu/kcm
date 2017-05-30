@@ -133,7 +133,8 @@ func (s *createCmdState) createClusterDefinition() repository.Cluster {
 	for i := uint(1); i <= s.MasterCount; i++ {
 		domainName := libvirtDomainName(s.ClusterName, true, strconv.FormatUint(uint64(i), 10))
 
-		cluster.Masters = append(cluster.Masters, repository.Node{
+		cluster.Nodes = append(cluster.Nodes, repository.Node{
+			IsMaster:      true,
 			Domain:        domainName,
 			StoragePool:   s.LibvirtStoragePool,
 			StorageVolume: libvirtStorageVolumeName(domainName),
@@ -146,6 +147,7 @@ func (s *createCmdState) createClusterDefinition() repository.Cluster {
 		domainName := libvirtDomainName(s.ClusterName, false, strconv.FormatUint(uint64(i), 10))
 
 		cluster.Nodes = append(cluster.Nodes, repository.Node{
+			IsMaster:      false,
 			Domain:        domainName,
 			StoragePool:   s.LibvirtStoragePool,
 			StorageVolume: libvirtStorageVolumeName(domainName),

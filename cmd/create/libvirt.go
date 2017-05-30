@@ -43,12 +43,6 @@ func ValidateLibvirtObjects(connection *libvirt.Connection, cluster repository.C
 		return nil
 	}
 
-	for _, node := range cluster.Masters {
-		if err := checkNode(node); err != nil {
-			return err
-		}
-	}
-
 	for _, node := range cluster.Nodes {
 		if err := checkNode(node); err != nil {
 			return err
@@ -75,23 +69,17 @@ func CreateLibvirtObjects(connection *libvirt.Connection, cluster repository.Clu
 		return nil
 	}
 
-	macAddresses, err := connection.GenerateUniqueMACAddresses(len(cluster.Masters) + len(cluster.Nodes))
+	macAddresses, err := connection.GenerateUniqueMACAddresses(len(cluster.Nodes))
 	if err != nil {
 		return err
 	}
 
-	for i, node := range cluster.Masters {
+	for i, node := range cluster.Nodes {
 		if err := createDomain(node, macAddresses[i]); err != nil {
 			return err
 		}
 	}
 
-	for i, node := range cluster.Nodes {
-		macAddress := macAddresses[i+len(cluster.Masters)]
-		if err := createDomain(node, macAddress); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

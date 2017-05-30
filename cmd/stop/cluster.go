@@ -12,12 +12,6 @@ func Cluster(connection *libvirt.Connection, cluster repository.Cluster, force b
 		}
 	}
 
-	for _, node := range cluster.Masters {
-		if err := Node(connection, node, force); err != nil {
-			return err
-		}
-	}
-
 	if err := Network(connection, cluster.Network); err != nil {
 		return err
 	}

@@ -11,7 +11,6 @@ func newRemoveCmd() *cobra.Command {
 	}
 
 	cmd.AddCommand(newRemoveClusterCmd())
-	cmd.AddCommand(newRemoveMasterCmd())
 	cmd.AddCommand(newRemoveNodeCmd())
 
 	return cmd

@@ -16,7 +16,6 @@ type Cluster struct {
 	KubernetesVersion    string  `json:"kubernetesVersion"`
 	CoreOSVersion        string  `json:"coreOSVersion"`
 	CoreOSChannel        string  `json:"coreOSChannel"`
-	Masters              []Node  `json:"masters"`
 	Nodes                []Node  `json:"nodes"`
 	Network              Network `json:"network"`
 	StoragePool          string  `json:"storagePool"`
@@ -24,6 +23,7 @@ type Cluster struct {
 }
 
 type Node struct {
+	IsMaster      bool   `json:"isMaster"`
 	Domain        string `json:"domain"`
 	MemoryMiB     uint   `json:"memory"`
 	CPUs          uint   `json:"cpus"`
@@ -83,14 +83,8 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: invalid CoreOS version/channel")
 	}
 
-	if len(c.Masters) < 1 {
-		return errors.New("repository: no master node configured")
-	}
-
-	for _, node := range c.Masters {
-		if err := node.validate(); err != nil {
-			return err
-		}
+	if len(c.Nodes) < 1 {
+		return errors.New("repository: no node configured")
 	}
 
 	for _, node := range c.Nodes {
@@ -133,27 +127,6 @@ func (c *Cluster) RemoveNode(domain string) {
 	}
 
 	c.Nodes = filtered
-}
-
-func (c *Cluster) Master(domain string) (Node, bool) {
-	for _, node := range c.Masters {
-		if node.Domain == domain {
-			return node, true
-		}
-	}
-
-	return Node{}, false
-}
-
-func (c *Cluster) RemoveMaster(domain string) {
-	var filtered []Node
-	for _, node := range c.Masters {
-		if node.Domain != domain {
-			filtered = append(filtered, node)
-		}
-	}
-
-	c.Masters = filtered
 }
 
 func (n *Node) validate() error {
