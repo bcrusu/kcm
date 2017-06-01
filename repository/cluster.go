@@ -3,14 +3,11 @@ package repository
 import (
 	"encoding/json"
 	"io/ioutil"
-	"path"
 	"strings"
 
 	"github.com/bcrusu/kcm/util"
 	"github.com/pkg/errors"
 )
-
-const clusterSpecFileName = "cluster.json"
 
 type Cluster struct {
 	Name                 string          `json:"name"`
@@ -40,8 +37,7 @@ type Network struct {
 	IPv4CIDR string `json:"ipv4cidr"`
 }
 
-func loadCluster(clusterDir string) (*Cluster, error) {
-	clusterFile := path.Join(clusterDir, clusterSpecFileName)
+func loadCluster(clusterFile string) (*Cluster, error) {
 	bytes, err := ioutil.ReadFile(clusterFile)
 	if err != nil {
 		return nil, errors.Wrapf(err, "repository: failed to read cluster '%s'", clusterFile)
@@ -55,13 +51,12 @@ func loadCluster(clusterDir string) (*Cluster, error) {
 	return cluster, nil
 }
 
-func (c *Cluster) save(clusterDir string) error {
+func (c *Cluster) save(clusterFile string) error {
 	bytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return errors.Wrapf(err, "repository: failed to marshall cluster '%s'", c.Name)
 	}
 
-	clusterFile := path.Join(clusterDir, clusterSpecFileName)
 	if err := util.WriteFile(clusterFile, bytes); err != nil {
 		return errors.Wrapf(err, "repository: failed to write cluster '%s'", clusterFile)
 	}

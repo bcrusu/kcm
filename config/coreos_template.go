@@ -2,7 +2,7 @@ package config
 
 const coreOSCloudConfigTemplate = `#cloud-config
 
-hostname: {{ .Name }}
+hostname: {{ Hostname }}
 
 ssh_authorized_keys:
   - {{ .SSHPublicKey }}

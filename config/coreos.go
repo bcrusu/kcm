@@ -5,6 +5,8 @@ import (
 	"path"
 	"text/template"
 
+	"strings"
+
 	"github.com/bcrusu/kcm/util"
 )
 
@@ -34,6 +36,13 @@ func writeCoreOSConfig(configDir string, params coreOSTemplateParams) error {
 
 func generateCoreOSConfig(params coreOSTemplateParams) []byte {
 	t := template.New("coreos")
+
+	t.Funcs(template.FuncMap{
+		"Hostname": func() string {
+			return strings.Replace(params.Name, ".", "_", -1)
+		},
+	})
+
 	if _, err := t.Parse(coreOSCloudConfigTemplate); err != nil {
 		panic(err)
 	}

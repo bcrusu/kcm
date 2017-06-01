@@ -1,11 +1,12 @@
 package remove
 
 import (
+	"github.com/bcrusu/kcm/config"
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
 )
 
-func Node(connection *libvirt.Connection, node repository.Node) error {
+func Node(connection *libvirt.Connection, clusterConfig *config.ClusterConfig, node repository.Node) error {
 	domainName := node.Domain
 
 	domain, err := connection.GetDomain(domainName)
@@ -34,6 +35,10 @@ func Node(connection *libvirt.Connection, node repository.Node) error {
 	}
 
 	if err := connection.DeleteStorageVolume(node.StoragePool, node.StorageVolume); err != nil {
+		return err
+	}
+
+	if err := clusterConfig.UnstageNode(node.Name); err != nil {
 		return err
 	}
 

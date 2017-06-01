@@ -85,8 +85,18 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if clusterRepository.Exists(cluster.Name) {
+	exists, err := clusterRepository.Exists(cluster.Name)
+	if err != nil {
+		return err
+	}
+
+	if exists {
 		return errors.Errorf("failed to create cluster. Cluster '%s' already exists", cluster.Name)
+	}
+
+	sshPublicKey, err := readSSHPublicKey(s.SSHPublicKeyPath)
+	if err != nil {
+		return err
 	}
 
 	connection, err := connectLibvirt()
@@ -109,12 +119,12 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	clusterConfig, err := getClusterConfig(cluster, s.SSHPublicKeyPath)
+	clusterConfig, err := getClusterConfig(cluster)
 	if err != nil {
 		return err
 	}
 
-	if err := create.Cluster(connection, clusterConfig, cluster); err != nil {
+	if err := create.Cluster(connection, clusterConfig, cluster, sshPublicKey); err != nil {
 		return err
 	}
 

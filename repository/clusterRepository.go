@@ -12,6 +12,7 @@ import (
 )
 
 const currentClusterFileName = "CURRENT"
+const clusterFileExtension = ".json"
 
 type ClusterRepository interface {
 	Current() (*Cluster, error)
@@ -20,7 +21,7 @@ type ClusterRepository interface {
 	LoadAll() ([]*Cluster, error)
 	Save(cluster Cluster) error
 	Remove(name string) error
-	Exists(name string) bool
+	Exists(name string) (bool, error)
 }
 
 type clusterRepository struct {
@@ -53,14 +54,18 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() {
+		if file.IsDir() {
 			continue
 		}
 
 		fileName := file.Name()
+		if !strings.HasSuffix(fileName, clusterFileExtension) {
+			continue
+		}
+
 		cluster, err := r.Load(fileName)
 		if err != nil {
-			glog.Warningf("repository: failed to load cluster '%s' in repository '%s'", fileName, r.path)
+			glog.Warningf("repository: failed to load cluster from file '%s'", fileName)
 			continue
 		}
 
@@ -71,8 +76,9 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 }
 
 func (r *clusterRepository) Load(name string) (*Cluster, error) {
-	clusterPath := path.Join(r.path, name)
-	exists, err := util.DirectoryExists(clusterPath)
+	filePath := r.clusterFile(name)
+
+	exists, err := util.FileExists(filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +87,7 @@ func (r *clusterRepository) Load(name string) (*Cluster, error) {
 		return nil, nil
 	}
 
-	return loadCluster(clusterPath)
+	return loadCluster(filePath)
 }
 
 func (r *clusterRepository) Current() (*Cluster, error) {
@@ -110,12 +116,8 @@ func (r *clusterRepository) Save(cluster Cluster) error {
 		return errors.Wrap(err, "repository: failed to save cluster")
 	}
 
-	clusterPath := path.Join(r.path, cluster.Name)
-	if err := util.CreateDirectoryPath(clusterPath); err != nil {
-		return errors.Wrapf(err, "repository: failed to create cluster directory '%s'", clusterPath)
-	}
-
-	if err := cluster.save(clusterPath); err != nil {
+	filePath := r.clusterFile(cluster.Name)
+	if err := cluster.save(filePath); err != nil {
 		return err
 	}
 
@@ -131,8 +133,8 @@ func (r *clusterRepository) Remove(name string) error {
 		return errors.New("repository: invalid cluster name")
 	}
 
-	clusterPath := path.Join(r.path, name)
-	err := os.RemoveAll(clusterPath)
+	filePath := r.clusterFile(name)
+	err := os.Remove(filePath)
 	if err != nil {
 		return errors.Wrapf(err, "repository: failed to remove cluster '%s'", name)
 	}
@@ -144,15 +146,19 @@ func (r *clusterRepository) Remove(name string) error {
 	return nil
 }
 
-func (r *clusterRepository) Exists(name string) bool {
-	clusterPath := path.Join(r.path, name)
+func (r *clusterRepository) Exists(name string) (bool, error) {
+	filePath := r.clusterFile(name)
 
-	_, err := os.Stat(clusterPath)
+	_, err := os.Stat(filePath)
 	if err != nil {
-		return !os.IsNotExist(err) //TODO: review
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+
+		return false, err
 	}
 
-	return true
+	return true, nil
 }
 
 func (r *clusterRepository) loadCurrentClusterName() error {
@@ -184,4 +190,9 @@ func (r *clusterRepository) resetCurrentClusterName() error {
 
 	r.currentCluster = nil
 	return nil
+}
+
+func (r *clusterRepository) clusterFile(clusterName string) string {
+	fileName := clusterName + clusterFileExtension
+	return path.Join(r.path, fileName)
 }

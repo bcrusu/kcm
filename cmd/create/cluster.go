@@ -7,7 +7,7 @@ import (
 )
 
 func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
-	cluster repository.Cluster) error {
+	cluster repository.Cluster, sshPublicKey string) error {
 	if err := Network(connection, cluster.Network); err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig
 
 	index := 0
 	for _, node := range cluster.Nodes {
-		if err := Node(connection, clusterConfig, node, cluster.Network.Name, macAddresses[index]); err != nil {
+		if err := Node(connection, clusterConfig, node, cluster.Network.Name, macAddresses[index], sshPublicKey); err != nil {
 			return err
 		}
 

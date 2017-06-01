@@ -67,7 +67,12 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 	}
 	defer connection.Close()
 
-	if err := remove.Node(connection, *toRemove); err != nil {
+	clusterConfig, err := getClusterConfig(*cluster)
+	if err != nil {
+		return err
+	}
+
+	if err := remove.Node(connection, clusterConfig, *toRemove); err != nil {
 		return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", nodeName, cluster.Name)
 	}
 

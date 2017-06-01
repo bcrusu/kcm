@@ -61,14 +61,9 @@ func getWorkingCluster(clusterRepository repository.ClusterRepository, clusterNa
 	return cluster, nil
 }
 
-func getClusterConfig(cluster repository.Cluster, sshPublicKeyPath string) (*config.ClusterConfig, error) {
-	sshPublicKey, err := readSSHPublicKey(sshPublicKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
+func getClusterConfig(cluster repository.Cluster) (*config.ClusterConfig, error) {
 	configDir := path.Join(*dataDir, "config", cluster.Name)
-	return config.New(configDir, cluster, sshPublicKey)
+	return config.New(configDir, cluster)
 }
 
 func readSSHPublicKey(path string) (string, error) {

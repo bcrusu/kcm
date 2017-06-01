@@ -45,7 +45,12 @@ func removeClusterCmdRunE(cmd *cobra.Command, args []string) error {
 	}
 	defer connection.Close()
 
-	if err := remove.Cluster(connection, *cluster); err != nil {
+	clusterConfig, err := getClusterConfig(*cluster)
+	if err != nil {
+		return err
+	}
+
+	if err := remove.Cluster(connection, clusterConfig, *cluster); err != nil {
 		return errors.Wrapf(err, "failed to remove cluster libvirt objects '%s'", clusterName)
 	}
 

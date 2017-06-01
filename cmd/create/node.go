@@ -7,14 +7,14 @@ import (
 )
 
 func Node(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
-	node repository.Node, networkName, networkInterfaceMAC string) error {
+	node repository.Node, networkName, networkInterfaceMAC string, sshPublicKey string) error {
 
 	storageVolume, err := connection.CreateStorageVolume(node.StoragePool, node.StorageVolume, node.BackingStorageVolume)
 	if err != nil {
 		return err
 	}
 
-	stageResult, err := clusterConfig.StageNode(node.Name)
+	stageResult, err := clusterConfig.StageNode(node.Name, sshPublicKey)
 	if err != nil {
 		return err
 	}
