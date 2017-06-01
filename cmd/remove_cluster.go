@@ -36,7 +36,7 @@ func removeClusterCmdRunE(cmd *cobra.Command, args []string) error {
 	}
 
 	if cluster == nil {
-		return errors.Errorf("could not find cluster '%s'", cluster.Name)
+		return errors.Errorf("could not find cluster '%s'", clusterName)
 	}
 
 	connection, err := connectLibvirt()

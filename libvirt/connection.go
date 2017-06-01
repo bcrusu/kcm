@@ -103,10 +103,10 @@ func (c *Connection) ListAllDomains() ([]libvirtxml.Domain, error) {
 	return listAllDomains(c.connect)
 }
 
-func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) error {
+func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) (*libvirtxml.StorageVolume, error) {
 	p, err := lookupStoragePoolStrict(c.connect, pool)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return createStorageVolume(p, name, backingVolumeName)

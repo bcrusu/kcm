@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
-
 	"strings"
 
+	"github.com/bcrusu/kcm/util"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -29,7 +29,7 @@ type clusterRepository struct {
 }
 
 func New(path string) (ClusterRepository, error) {
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := util.CreateDirectoryPath(path); err != nil {
 		return nil, errors.Wrapf(err, "repository: failed to initialize cluster repository '%s'", path)
 	}
 
@@ -72,6 +72,15 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 
 func (r *clusterRepository) Load(name string) (*Cluster, error) {
 	clusterPath := path.Join(r.path, name)
+	exists, err := util.DirectoryExists(clusterPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, nil
+	}
+
 	return loadCluster(clusterPath)
 }
 
@@ -87,7 +96,7 @@ func (r *clusterRepository) SetCurrent(name string) error {
 	filePath := path.Join(r.path, currentClusterFileName)
 	data := []byte(name)
 
-	err := ioutil.WriteFile(filePath, data, 0644)
+	err := util.WriteFile(filePath, data)
 	if err != nil {
 		return errors.Wrapf(err, "repository: failed to set cluster '%s' as current cluster", name)
 	}
@@ -102,7 +111,7 @@ func (r *clusterRepository) Save(cluster Cluster) error {
 	}
 
 	clusterPath := path.Join(r.path, cluster.Name)
-	if err := os.MkdirAll(clusterPath, 0755); err != nil {
+	if err := util.CreateDirectoryPath(clusterPath); err != nil {
 		return errors.Wrapf(err, "repository: failed to create cluster directory '%s'", clusterPath)
 	}
 

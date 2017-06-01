@@ -12,10 +12,15 @@ type DefineDomainParams struct {
 	Network             string
 	NetworkInterfaceMAC string
 	StorageVolumePath   string
-	FilesystemMounts    map[string]string // map[HOST_PATH]GUEST_PATH
+	FilesystemMounts    []FilesystemMount
 	MemoryMiB           uint              // max domain memory
 	CPUs                uint              // number of CPU cores
 	Metadata            map[string]string // map[NAME]VALUE
+}
+
+type FilesystemMount struct {
+	HostPath  string
+	GuestPath string
 }
 
 func lookupDomain(connect *libvirt.Connect, lookup string) (*libvirt.Domain, error) {
@@ -80,12 +85,12 @@ func defineDomain(connect *libvirt.Connect, params DefineDomainParams, emulatorP
 	domainXML.Memory().SetUnit("MiB")
 	domainXML.Memory().SetValue(uint64(params.MemoryMiB))
 
-	for hostPath, guestPath := range params.FilesystemMounts {
+	for _, mount := range params.FilesystemMounts {
 		fs := domainXML.Devices().NewFilesystem()
 		fs.SetType("mount")
 		fs.SetAccessmode("squash")
-		fs.SetSourceDir(hostPath)
-		fs.SetTargetDir(guestPath)
+		fs.SetSourceDir(mount.HostPath)
+		fs.SetTargetDir(mount.GuestPath)
 		fs.SetReadonly(true)
 	}
 
@@ -178,6 +183,5 @@ func listAllDomains(connect *libvirt.Connect) ([]libvirtxml.Domain, error) {
 		domain.Free()
 	}
 
-	//TODO(bcrusu): cache the result
 	return result, nil
 }

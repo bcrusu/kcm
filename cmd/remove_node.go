@@ -46,20 +46,11 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	nodeMap := make(map[string]*repository.Node)
-	for _, node := range cluster.Nodes {
-		nodeMap[node.Domain] = &node
-	}
-
 	var toRemove *repository.Node
-
-	if node, ok := nodeMap[nodeName]; ok {
-		toRemove = node
-	} else {
-		// try the 'short name'
-		tmp := libvirtDomainName(cluster.Name, s.IsMaster, nodeName)
-		if node, ok := nodeMap[tmp]; ok {
-			toRemove = node
+	for _, node := range cluster.Nodes {
+		if nodeName == node.Name {
+			toRemove = &node
+			break
 		}
 	}
 
@@ -77,12 +68,12 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 	defer connection.Close()
 
 	if err := remove.Node(connection, *toRemove); err != nil {
-		return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", toRemove.Domain, cluster.Name)
+		return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", nodeName, cluster.Name)
 	}
 
-	cluster.RemoveNode(toRemove.Domain)
+	delete(cluster.Nodes, toRemove.Name)
 	if err := clusterRepository.Save(*cluster); err != nil {
-		return errors.Wrapf(err, "failed to persist state for cluster '%s' after removing node '%s'", cluster.Name, toRemove.Domain)
+		return errors.Wrapf(err, "failed to persist state for cluster '%s' after removing node '%s'", cluster.Name, nodeName)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/bcrusu/kcm/libvirtxml"
+	"github.com/bcrusu/kcm/util"
 	"github.com/golang/glog"
 	"github.com/libvirt/libvirt-go"
 	"github.com/pkg/errors"
@@ -12,7 +13,6 @@ import (
 type DefineNetworkParams struct {
 	Name     string
 	IPv4CIDR string
-	IPv6CIDR string
 	Metadata map[string]string // map[NAME]VALUE
 }
 
@@ -76,10 +76,6 @@ func defineNATNetwork(connect *libvirt.Connect, params DefineNetworkParams) erro
 		addIP(networkXML, params.IPv4CIDR)
 	}
 
-	if params.IPv6CIDR != "" {
-		addIP(networkXML, params.IPv6CIDR)
-	}
-
 	if len(networkXML.IPs()) == 0 {
 		return errors.New("libvirt: failed to define network - missing CIDR")
 	}
@@ -111,56 +107,25 @@ func addIP(network libvirtxml.Network, cidr string) error {
 	case net.IPv4len:
 		family = "ipv4"
 	case net.IPv6len:
-		family = "ipv6"
+		return errors.Errorf("libvirt: IPv6 network not supported '%s'", cidr)
 	default:
 		return errors.Wrapf(err, "libvirt: failed to define network - invalid CIDR IP '%s'", ip)
 	}
 
 	prefix, bits := ipnet.Mask.Size()
 	if bits-prefix < 3 {
-		return errors.Wrapf(err, "libvirt: failed to define network - network too small '%s'", cidr)
+		return errors.Wrapf(err, "libvirt: failed to define network - network is too small '%s'", cidr)
 	}
+
+	bridgeIP := util.GetBridgeIP(ipnet)
 
 	ipXML := network.NewIP()
 	ipXML.SetFamily(family)
-	ipXML.SetAddress(getBridgeIP(ipnet).String())
+	ipXML.SetAddress(bridgeIP.String())
 	ipXML.SetPrefix(prefix)
 
-	dhcpStart, dhcpEnd := getDHCPRange(ipnet)
+	dhcpStart, dhcpEnd := util.GetDHCPRange(ipnet)
 	ipXML.SetDHCPRange(dhcpStart.String(), dhcpEnd.String())
 
 	return nil
-}
-
-func getBridgeIP(net *net.IPNet) net.IP {
-	result := make([]byte, len(net.IP))
-	copy(result, net.IP)
-
-	result[len(result)-1]++
-	return result
-}
-
-func getDHCPRange(ipnet *net.IPNet) (net.IP, net.IP) {
-	ipLen := len(ipnet.IP)
-
-	start := make([]byte, ipLen)
-	{
-		copy(start, ipnet.IP)
-		start[ipLen-1] += 2 // first IP is assigned to the bridge
-	}
-
-	end := make([]byte, ipLen)
-	{
-		copy(end, ipnet.IP)
-
-		for i, b := range ipnet.Mask {
-			end[i] += ^b
-		}
-
-		if ipLen == net.IPv4len {
-			end[ipLen-1]-- // exclude broadcast address
-		}
-	}
-
-	return start, end
 }

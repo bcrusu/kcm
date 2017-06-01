@@ -1,4 +1,4 @@
-package create
+package download
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"os"
 	"path"
 
 	"github.com/bcrusu/kcm/libvirt"
@@ -125,13 +124,15 @@ func runDownloadKubernetes(version string, outDir string) error {
 func downloadKubernetes(version string, kubeCacheDir string) error {
 	kubePath := path.Join(kubeCacheDir, version)
 
-	if _, err := os.Stat(kubePath); err != nil {
-		if os.IsNotExist(err) {
-			return runDownloadKubernetes(version, kubePath)
-		}
+	exists, err := util.DirectoryExists(kubePath)
+	if err != nil {
 		return err
 	}
 
-	// kubernetes version already on disk - no need to download
-	return nil
+	if exists {
+		// kubernetes version already on disk - no need to download
+		return nil
+	}
+
+	return runDownloadKubernetes(version, kubePath)
 }

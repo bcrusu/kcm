@@ -6,35 +6,38 @@ import (
 	"path"
 	"strings"
 
+	"github.com/bcrusu/kcm/util"
 	"github.com/pkg/errors"
 )
 
 const clusterSpecFileName = "cluster.json"
 
 type Cluster struct {
-	Name                 string  `json:"name"`
-	KubernetesVersion    string  `json:"kubernetesVersion"`
-	CoreOSVersion        string  `json:"coreOSVersion"`
-	CoreOSChannel        string  `json:"coreOSChannel"`
-	Nodes                []Node  `json:"nodes"`
-	Network              Network `json:"network"`
-	StoragePool          string  `json:"storagePool"`
-	BackingStorageVolume string  `json:"backingStorageVolume"`
+	Name                 string          `json:"name"`
+	KubernetesVersion    string          `json:"kubernetesVersion"`
+	CoreOSVersion        string          `json:"coreOSVersion"`
+	CoreOSChannel        string          `json:"coreOSChannel"`
+	Nodes                map[string]Node `json:"nodes"` //map[NODE_NAME]NODE
+	Network              Network         `json:"network"`
+	MasterIP             string          `json:"masterIP"`
+	StoragePool          string          `json:"storagePool"`
+	BackingStorageVolume string          `json:"backingStorageVolume"`
 }
 
 type Node struct {
-	IsMaster      bool   `json:"isMaster"`
-	Domain        string `json:"domain"`
-	MemoryMiB     uint   `json:"memory"`
-	CPUs          uint   `json:"cpus"`
-	StoragePool   string `json:"storagePool"`
-	StorageVolume string `json:"storageVolume"`
+	Name                 string `json:"name"`
+	IsMaster             bool   `json:"isMaster"`
+	Domain               string `json:"domain"`
+	MemoryMiB            uint   `json:"memory"`
+	CPUs                 uint   `json:"cpus"`
+	StoragePool          string `json:"storagePool"`
+	BackingStorageVolume string `json:"backingStorageVolume"`
+	StorageVolume        string `json:"storageVolume"`
 }
 
 type Network struct {
 	Name     string `json:"name"`
 	IPv4CIDR string `json:"ipv4cidr"`
-	IPv6CIDR string `json:"ipv6cidr"`
 }
 
 func loadCluster(clusterDir string) (*Cluster, error) {
@@ -59,7 +62,7 @@ func (c *Cluster) save(clusterDir string) error {
 	}
 
 	clusterFile := path.Join(clusterDir, clusterSpecFileName)
-	if err := ioutil.WriteFile(clusterFile, bytes, 0644); err != nil {
+	if err := util.WriteFile(clusterFile, bytes); err != nil {
 		return errors.Wrapf(err, "repository: failed to write cluster '%s'", clusterFile)
 	}
 
@@ -87,10 +90,23 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: no node configured")
 	}
 
+	mastersCount := 0
 	for _, node := range c.Nodes {
 		if err := node.validate(); err != nil {
 			return err
 		}
+
+		if node.IsMaster {
+			mastersCount++
+		}
+	}
+
+	if mastersCount == 0 {
+		return errors.New("repository: no master node configured")
+	}
+
+	if mastersCount != 1 {
+		return errors.New("repository: multiple master clusters are not supported atm")
 	}
 
 	if c.StoragePool == "" {
@@ -101,6 +117,10 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: missing backing storage volume")
 	}
 
+	if c.MasterIP == "" {
+		return errors.New("repository: missing master IP")
+	}
+
 	if err := c.Network.validate(); err != nil {
 		return err
 	}
@@ -108,30 +128,13 @@ func (c *Cluster) Validate() error {
 	return nil
 }
 
-func (c *Cluster) Node(domain string) (Node, bool) {
-	for _, node := range c.Nodes {
-		if node.Domain == domain {
-			return node, true
-		}
-	}
-
-	return Node{}, false
-}
-
-func (c *Cluster) RemoveNode(domain string) {
-	var filtered []Node
-	for _, node := range c.Nodes {
-		if node.Domain != domain {
-			filtered = append(filtered, node)
-		}
-	}
-
-	c.Nodes = filtered
-}
-
 func (n *Node) validate() error {
 	if n == nil {
 		return errors.Errorf("repository: nil node")
+	}
+
+	if n.Name == "" {
+		return errors.Errorf("repository: missing node name")
 	}
 
 	if n.Domain == "" {
@@ -144,6 +147,10 @@ func (n *Node) validate() error {
 
 	if n.StoragePool == "" {
 		return errors.Errorf("repository: missing node storage pool")
+	}
+
+	if n.BackingStorageVolume == "" {
+		return errors.Errorf("repository: missing backing storage volume")
 	}
 
 	if n.CPUs < 1 {
@@ -166,7 +173,7 @@ func (n *Network) validate() error {
 		return errors.Errorf("repository: missing network name")
 	}
 
-	if len(n.IPv4CIDR) == 0 && len(n.IPv6CIDR) == 0 {
+	if n.IPv4CIDR == "" {
 		return errors.Errorf("repository: missing network CIDR")
 	}
 

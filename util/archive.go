@@ -3,7 +3,6 @@ package util
 import (
 	"archive/tar"
 	"io"
-	"os"
 	"path"
 
 	"github.com/golang/glog"
@@ -40,7 +39,7 @@ func ExtractTar(in io.Reader, outDir string) error {
 				return errors.Wrapf(err, "extract tar: failed to close file '%s'", filePath)
 			}
 		case tar.TypeDir:
-			if err := os.MkdirAll(filePath, 0755); err != nil {
+			if err := CreateDirectoryPath(filePath); err != nil {
 				return errors.Wrapf(err, "extract tar: failed to create directory '%s'", filePath)
 			}
 		default:

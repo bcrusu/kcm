@@ -4,6 +4,9 @@
 
 TODO
 
+libvirt
+KVM/QEMU
+
 ### Installation
 
 TODO
@@ -18,6 +21,7 @@ TODO
 - [ ] Use the Libvirt StorageVolume.Upload(...) API call to add the base CoreOS image to the pool
 - [ ] Add 'verbose' flag
 - [ ] Add 'yes' flag for remove command
+- [ ] Check if KSM is not enabled & warn user
 
 ### Inspiration
 
