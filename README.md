@@ -18,6 +18,8 @@ TODO
 ### Items left to do:
 
 - [ ] Export cluster details to kubectl (i.e. kubectl config set-cluster)
+- [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
+- [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with previx 'KCM_' should be made available to Kubernetes)
 - [ ] Use the Libvirt StorageVolume.Upload(...) API call to add the base CoreOS image to the pool
 - [ ] Add 'verbose' flag
 - [ ] Add 'yes' flag for remove command
