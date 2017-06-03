@@ -1,8 +1,11 @@
 package config
 
 import (
+	"crypto/x509"
+	"fmt"
 	"path"
 
+	"github.com/bcrusu/kcm/config/coreos"
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
@@ -10,23 +13,32 @@ import (
 )
 
 type ClusterConfig struct {
-	configDir string
-	cluster   repository.Cluster
+	clusterDir       string
+	cluster          repository.Cluster
+	kubernetesBinDir string
+	caCertificate    *x509.Certificate
 }
 
 type StageNodeResult struct {
 	FilesystemMounts []libvirt.FilesystemMount
 }
 
-func New(configDir string, cluster repository.Cluster) (*ClusterConfig, error) {
-	err := util.CreateDirectoryPath(configDir)
+func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir string) (*ClusterConfig, error) {
+	err := util.CreateDirectoryPath(clusterDir)
+	if err != nil {
+		return nil, err
+	}
+
+	caCertificate, err := util.ParseCertificate(cluster.CACertificate)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ClusterConfig{
-		configDir: configDir,
-		cluster:   cluster,
+		clusterDir:       clusterDir,
+		cluster:          cluster,
+		kubernetesBinDir: path.Join(kubernetesCacheDir, cluster.KubernetesVersion, "kubernetes", "server", "bin"),
+		caCertificate:    caCertificate,
 	}, nil
 }
 
@@ -36,45 +48,25 @@ func (c ClusterConfig) StageNode(name string, sshPublicKey string) (*StageNodeRe
 		return nil, errors.Errorf("cluster '%s' does not contain node '%s'", c.cluster.Name, name)
 	}
 
-	nodeConfigDir := path.Join(c.configDir, node.Name)
-	if err := util.RemoveDirectory(nodeConfigDir); err != nil {
-		return nil, errors.Wrapf(err, "failed to remove node config directory '%s'", nodeConfigDir)
+	nodeDir := path.Join(c.clusterDir, node.Name)
+	if err := util.RemoveDirectory(nodeDir); err != nil {
+		return nil, errors.Wrapf(err, "failed to remove node config directory '%s'", nodeDir)
 	}
 
-	if err := util.CreateDirectoryPath(nodeConfigDir); err != nil {
-		return nil, errors.Wrapf(err, "failed to create node config directory '%s'", nodeConfigDir)
+	if err := util.CreateDirectoryPath(nodeDir); err != nil {
+		return nil, errors.Wrapf(err, "failed to create node config directory '%s'", nodeDir)
 	}
 
-	// _ALL_
-	//   kubernetes
-	//   	bin
+	if err := c.stageKubernetes(path.Join(nodeDir, "kubernetes"), node); err != nil {
+		return nil, err
+	}
 
-	// NODE_NAME
-	//   config-2/openstack/latest/user_data
-	//   kubernetes
-	//	   /certs
-
-	// masters
-	//   manifests (static pods) - master nodes only
-	//   addons - master nodes only
-	// nodes
-
-	{
-		params := coreOSTemplateParams{
-			Name:          node.Name,
-			IsMaster:      node.IsMaster,
-			MasterIP:      c.cluster.MasterIP,
-			CoreOSChannel: c.cluster.CoreOSChannel,
-			SSHPublicKey:  sshPublicKey,
-		}
-
-		if err := writeCoreOSConfig(nodeConfigDir, params); err != nil {
-			return nil, err
-		}
+	if err := c.stageCoreOS(path.Join(nodeDir, "coreos"), node, sshPublicKey); err != nil {
+		return nil, err
 	}
 
 	return &StageNodeResult{
-		FilesystemMounts: getFilesystemMounts(nodeConfigDir),
+		FilesystemMounts: c.getFilesystemMounts(nodeDir),
 	}, nil
 }
 
@@ -84,8 +76,8 @@ func (c ClusterConfig) UnstageNode(name string) error {
 		return errors.Errorf("cluster '%s' does not contain node '%s'", c.cluster.Name, name)
 	}
 
-	nodeConfigDir := path.Join(c.configDir, node.Name)
-	exists, err := util.DirectoryExists(nodeConfigDir)
+	nodeDir := path.Join(c.clusterDir, node.Name)
+	exists, err := util.DirectoryExists(nodeDir)
 	if err != nil {
 		return err
 	}
@@ -94,15 +86,15 @@ func (c ClusterConfig) UnstageNode(name string) error {
 		return nil
 	}
 
-	if err := util.RemoveDirectory(nodeConfigDir); err != nil {
-		return errors.Wrapf(err, "failed to remove node config directory '%s'", nodeConfigDir)
+	if err := util.RemoveDirectory(nodeDir); err != nil {
+		return errors.Wrapf(err, "failed to remove node config directory '%s'", nodeDir)
 	}
 
 	return nil
 }
 
 func (c ClusterConfig) Unstage() error {
-	exists, err := util.DirectoryExists(c.configDir)
+	exists, err := util.DirectoryExists(c.clusterDir)
 	if err != nil {
 		return err
 	}
@@ -111,22 +103,46 @@ func (c ClusterConfig) Unstage() error {
 		return nil
 	}
 
-	if err := util.RemoveDirectory(c.configDir); err != nil {
-		return errors.Wrapf(err, "failed to remove cluster config directory '%s'", c.configDir)
+	if err := util.RemoveDirectory(c.clusterDir); err != nil {
+		return errors.Wrapf(err, "failed to remove cluster config directory '%s'", c.clusterDir)
 	}
 
 	return nil
 }
 
-func getFilesystemMounts(nodeConfigDir string) []libvirt.FilesystemMount {
+func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemMount {
 	return []libvirt.FilesystemMount{
 		libvirt.FilesystemMount{
-			HostPath:  path.Join(nodeConfigDir, "config-2"),
+			HostPath:  path.Join(nodeDir, "coreos"),
 			GuestPath: "config-2",
 		},
-		// libvirt.FilesystemMount{
-		// 	HostPath:  path.Join(nodeConfigDir, "kubernetes"),
-		// 	GuestPath: "kubernetes",
-		// },
+		libvirt.FilesystemMount{
+			HostPath:  path.Join(nodeDir, "kubernetes"),
+			GuestPath: "kubernetesConfig",
+		},
+		libvirt.FilesystemMount{
+			HostPath:  c.kubernetesBinDir,
+			GuestPath: "kubernetesBin",
+		},
 	}
+}
+
+func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPublicKey string) error {
+	params := coreos.CloudConfigParams{
+		Name:          node.Name,
+		IsMaster:      node.IsMaster,
+		MasterIP:      c.cluster.MasterIP,
+		CoreOSChannel: c.cluster.CoreOSChannel,
+		SSHPublicKey:  sshPublicKey,
+	}
+
+	if err := coreos.WriteCoreOSConfig(outDir, params); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c ClusterConfig) nodeDNSName(nodeName string) string {
+	return fmt.Sprintf("%s.%s", nodeName, c.cluster.DNSDomain)
 }

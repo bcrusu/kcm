@@ -5,6 +5,8 @@ import (
 	"io"
 	"path"
 
+	"os"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
@@ -26,7 +28,9 @@ func ExtractTar(in io.Reader, outDir string) error {
 
 		switch hdr.Typeflag {
 		case tar.TypeReg, tar.TypeRegA:
-			file, err := CreateFile(filePath, 0644)
+			fileMode := hdr.FileInfo().Mode()
+			fileMode |= os.FileMode(0044)
+			file, err := CreateFile(filePath, fileMode)
 			if err != nil {
 				return errors.Wrapf(err, "extract tar: failed to create file '%s'", filePath)
 			}

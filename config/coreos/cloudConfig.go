@@ -1,8 +1,17 @@
-package config
+package coreos
 
-const coreOSCloudConfigTemplate = `#cloud-config
+type CloudConfigParams struct {
+	Name              string
+	IsMaster          bool
+	SSHPublicKey      string
+	MasterIP          string
+	CoreOSChannel     string
+	NonMasqueradeCIDR string
+}
 
-hostname: {{ Hostname }}
+const cloudConfigTemplate = `#cloud-config
+
+hostname: {{ .Name }}
 
 ssh_authorized_keys:
   - {{ .SSHPublicKey }}
@@ -19,14 +28,15 @@ coreos:
 {{ if .IsMaster }}
 #TODO: etcd config
   etcd2:
-    advertise-client-urls: http://${public_ip}:2379
-    initial-advertise-peer-urls: http://${public_ip}:2380
+    advertise-client-urls: http://0.0.0.0:2379
     listen-client-urls: http://0.0.0.0:2379
-    listen-peer-urls: http://${public_ip}:2380
+    listen-peer-urls: http://0.0.0.0:2380
     initial-cluster-state: new
-    initial-cluster: ${etcd2_initial_cluster}
+    initial-cluster: {{ .Name }}=http://0.0.0.0:2380
+    initial-advertise-peer-urls: http://0.0.0.0:2380
 {{ end }}
   units:
+{{ if .IsMaster }}
     - name: etcd2.service
       command: start
       drop-ins:
@@ -34,6 +44,7 @@ coreos:
           content: |
             [Service]
             Environment=ETCD_NAME=%H
+{{ end }}
     - name: docker.service
       command: start
       drop-ins:
@@ -41,28 +52,30 @@ coreos:
           content: |
             [Service]
             Environment='DOCKER_OPTS=--bridge=cbr0 --iptables=false'
-    - name: docker-tcp.socket
-      command: start
-      enable: yes
-      content: |
-        [Unit]
-        Description=Docker Socket for the API
-        [Socket]
-        ListenStream=2375
-        BindIPv6Only=both
-        Service=docker.service
-        [Install]
-        WantedBy=sockets.target
     - name: opt-kubernetes.mount
       command: start
       content: |
         [Unit]
         ConditionVirtualization=|vm
         [Mount]
-        What=kubernetes
+        What=kubernetesConfig
         Where=/opt/kubernetes
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+
+    - name: opt-kubernetes-bin.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        After=opt-kubernetes.mount
+        Requires=opt-kubernetes.mount
+        [Mount]
+        What=kubernetesBin
+        Where=/opt/kubernetes/bin
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
+
   update:
     group: {{ .CoreOSChannel }}
 reboot-strategy: off

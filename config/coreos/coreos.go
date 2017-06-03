@@ -1,25 +1,15 @@
-package config
+package coreos
 
 import (
 	"bytes"
 	"path"
 	"text/template"
 
-	"strings"
-
 	"github.com/bcrusu/kcm/util"
 )
 
-type coreOSTemplateParams struct {
-	Name          string
-	IsMaster      bool
-	SSHPublicKey  string
-	MasterIP      string
-	CoreOSChannel string
-}
-
-func writeCoreOSConfig(configDir string, params coreOSTemplateParams) error {
-	userDataDir := path.Join(configDir, "config-2", "openstack", "latest")
+func WriteCoreOSConfig(outDir string, params CloudConfigParams) error {
+	userDataDir := path.Join(outDir, "openstack", "latest")
 	if err := util.CreateDirectoryPath(userDataDir); err != nil {
 		return err
 	}
@@ -34,16 +24,27 @@ func writeCoreOSConfig(configDir string, params coreOSTemplateParams) error {
 	return nil
 }
 
-func generateCoreOSConfig(params coreOSTemplateParams) []byte {
+func generateCoreOSConfig(params CloudConfigParams) []byte {
 	t := template.New("coreos")
 
 	t.Funcs(template.FuncMap{
-		"Hostname": func() string {
-			return strings.Replace(params.Name, ".", "_", -1)
+		"Role": func() string {
+			if params.IsMaster {
+				return "master"
+			}
+
+			return "node"
+		},
+		"APIServer": func() string {
+			if params.IsMaster {
+				return "http://127.0.0.1:8080"
+			}
+
+			return "http://" + params.MasterIP + ":8080"
 		},
 	})
 
-	if _, err := t.Parse(coreOSCloudConfigTemplate); err != nil {
+	if _, err := t.Parse(cloudConfigTemplate); err != nil {
 		panic(err)
 	}
 

@@ -75,7 +75,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// lightweight validation - empty strings, no nodes defined, etc.
+	// lightweight validation - valid names, empty strings, no nodes defined, etc.
 	if err := cluster.Validate(); err != nil {
 		return err
 	}
@@ -141,6 +141,11 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 
 	backingStorageVolume := coreOSStorageVolumeName(s.CoreOSVersion)
 
+	caCertificate, caKey, err := util.CreateCACertificate(s.ClusterName + "-ca")
+	if err != nil {
+		return repository.Cluster{}, err
+	}
+
 	cluster := repository.Cluster{
 		Name:                 s.ClusterName,
 		KubernetesVersion:    s.KubernetesVersion,
@@ -153,7 +158,10 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 			Name:     libvirtNetworkName(s.ClusterName),
 			IPv4CIDR: s.IPv4CIDR,
 		},
-		Nodes: make(map[string]repository.Node),
+		Nodes:         make(map[string]repository.Node),
+		CACertificate: caCertificate,
+		CAPrivateKey:  caKey,
+		DNSDomain:     s.ClusterName + ".local",
 	}
 
 	addNode := func(name string, isMaster bool) {
@@ -172,12 +180,12 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 	}
 
 	for i := uint(1); i <= s.MasterCount; i++ {
-		name := "master." + strconv.FormatUint(uint64(i), 10)
+		name := "master" + strconv.FormatUint(uint64(i), 10)
 		addNode(name, true)
 	}
 
 	for i := uint(1); i <= s.NodesCount; i++ {
-		name := "node." + strconv.FormatUint(uint64(i), 10)
+		name := "node" + strconv.FormatUint(uint64(i), 10)
 		addNode(name, false)
 	}
 

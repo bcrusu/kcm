@@ -19,6 +19,9 @@ type Cluster struct {
 	MasterIP             string          `json:"masterIP"`
 	StoragePool          string          `json:"storagePool"`
 	BackingStorageVolume string          `json:"backingStorageVolume"`
+	CACertificate        []byte          `json:"caCertificate"`
+	CAPrivateKey         []byte          `json:"caPrivateKey"`
+	DNSDomain            string          `json:"dnsDomain"`
 }
 
 type Node struct {
@@ -65,6 +68,7 @@ func (c *Cluster) save(clusterFile string) error {
 }
 
 func (c *Cluster) Validate() error {
+	//TODO: name must be a valid dns host name
 	if c.Name == "" {
 		return errors.New("repository: missing cluster name")
 	}
@@ -120,10 +124,23 @@ func (c *Cluster) Validate() error {
 		return err
 	}
 
+	if c.CACertificate == nil {
+		return errors.New("repository: missing CA certificate")
+	}
+
+	if c.CAPrivateKey == nil {
+		return errors.New("repository: missing CA private key")
+	}
+
+	if c.DNSDomain == "" {
+		return errors.New("repository: missing cluster DNS domain name")
+	}
+
 	return nil
 }
 
 func (n *Node) validate() error {
+	//TODO: name must be a valid dns host name
 	if n == nil {
 		return errors.Errorf("repository: nil node")
 	}
