@@ -35,13 +35,6 @@ func generateCoreOSConfig(params CloudConfigParams) []byte {
 
 			return "node"
 		},
-		"APIServer": func() string {
-			if params.IsMaster {
-				return "http://127.0.0.1:8080"
-			}
-
-			return "http://" + params.MasterIP + ":8080"
-		},
 	})
 
 	if _, err := t.Parse(cloudConfigTemplate); err != nil {

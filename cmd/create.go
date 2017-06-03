@@ -53,7 +53,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
 	cmd.PersistentFlags().BoolVar(&state.Start, "start", false, "Start the cluster immediately")
-	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.11.0.1/24", "Libvirt network IPv4 CIDR")
+	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Networks 10.2.0.0/16 and 10.3.0.0/16 are reserved for pod/services networks")
 	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
 	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 512, "Master node memory (in MiB)")
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")

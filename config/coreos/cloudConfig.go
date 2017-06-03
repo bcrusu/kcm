@@ -1,17 +1,15 @@
 package coreos
 
 type CloudConfigParams struct {
-	Name              string
-	IsMaster          bool
-	SSHPublicKey      string
-	MasterIP          string
-	CoreOSChannel     string
-	NonMasqueradeCIDR string
+	Hostname        string
+	IsMaster        bool
+	SSHPublicKey    string
+	PodsNetworkCIDR string
 }
 
 const cloudConfigTemplate = `#cloud-config
 
-hostname: {{ .Name }}
+hostname: {{ .Hostname }}
 
 ssh_authorized_keys:
   - {{ .SSHPublicKey }}
@@ -32,9 +30,10 @@ coreos:
     listen-client-urls: http://0.0.0.0:2379
     listen-peer-urls: http://0.0.0.0:2380
     initial-cluster-state: new
-    initial-cluster: {{ .Name }}=http://0.0.0.0:2380
+    initial-cluster: {{ .Hostname }}=http://0.0.0.0:2380
     initial-advertise-peer-urls: http://0.0.0.0:2380
 {{ end }}
+
   units:
 {{ if .IsMaster }}
     - name: etcd2.service
@@ -45,6 +44,7 @@ coreos:
             [Service]
             Environment=ETCD_NAME=%H
 {{ end }}
+
     - name: docker.service
       command: start
       drop-ins:
@@ -52,6 +52,7 @@ coreos:
           content: |
             [Service]
             Environment='DOCKER_OPTS=--bridge=cbr0 --iptables=false'
+            
     - name: opt-kubernetes.mount
       command: start
       content: |
@@ -75,8 +76,4 @@ coreos:
         Where=/opt/kubernetes/bin
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
-
-  update:
-    group: {{ .CoreOSChannel }}
-reboot-strategy: off
 `

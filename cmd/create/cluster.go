@@ -8,6 +8,10 @@ import (
 
 func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
 	cluster repository.Cluster, sshPublicKey string) error {
+	if err := clusterConfig.StageCluster(); err != nil {
+		return err
+	}
+
 	if err := Network(connection, cluster.Network); err != nil {
 		return err
 	}

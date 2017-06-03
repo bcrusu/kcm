@@ -17,5 +17,5 @@ func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig
 		return err
 	}
 
-	return clusterConfig.Unstage()
+	return clusterConfig.UnstageCluster()
 }
