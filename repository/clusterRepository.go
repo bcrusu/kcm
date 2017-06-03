@@ -63,7 +63,7 @@ func (r *clusterRepository) LoadAll() ([]*Cluster, error) {
 			continue
 		}
 
-		cluster, err := r.Load(fileName)
+		cluster, err := loadCluster(path.Join(r.path, fileName))
 		if err != nil {
 			glog.Warningf("repository: failed to load cluster from file '%s'", fileName)
 			continue
