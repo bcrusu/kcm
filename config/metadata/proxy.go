@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 type proxyTemplateParams struct {
 	ImageTag        string
@@ -11,13 +11,16 @@ metadata:
   name: kube-proxy
 spec:
   hostNetwork: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
   containers:
   - name: kube-proxy
     image: gcr.io/google_containers/kube-proxy:{{ .ImageTag }}
     command:
     - kube-proxy
     - "--bind-address=0.0.0.0"
-    - "--master=127.0.0.1:8080"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig"
     - "--cluster-cidr={{ .PodsNetworkCIDR }}"
     livenessProbe:
       httpGet:

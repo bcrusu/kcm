@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 	"github.com/bcrusu/kcm/util"
 )
 
-type MetadataParams struct {
+type Params struct {
 	ClusterName         string
 	PodsNetworkCIDR     string
 	ServicesNetworkCIDR string
@@ -20,12 +20,10 @@ type MetadataParams struct {
 	FlannelImageTag           string
 }
 
-func WriteMetadataFiles(outDir string, params MetadataParams) error {
+func WriteManifests(outDir string, params Params) error {
 	if err := util.CreateDirectoryPath(outDir); err != nil {
 		return err
 	}
-
-	//TODO: apiserver, cm and scheduler pods should schedule only on master
 
 	if err := util.WriteFile(path.Join(outDir, "kube-apiserver.yaml"),
 		generateTemplate(apiServerTemplate, apiServerTemplateParams{

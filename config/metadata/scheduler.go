@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 type schedulerTemplateParams struct {
 	ImageTag string
@@ -10,13 +10,16 @@ metadata:
   name: kube-scheduler
 spec:
   hostNetwork: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/node
   containers:
   - name: kube-scheduler
     image: gcr.io/google_containers/kube-scheduler:{{ .ImageTag }}
     command:
     - kube-scheduler
     - "--address=0.0.0.0"
-    - "--master=127.0.0.1:8080"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig"
     livenessProbe:
       httpGet:
         scheme: HTTP

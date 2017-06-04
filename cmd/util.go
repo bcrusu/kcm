@@ -5,9 +5,12 @@ import (
 	"io/ioutil"
 	"path"
 
+	"crypto/x509"
+
 	"github.com/bcrusu/kcm/config"
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
+	"github.com/bcrusu/kcm/util"
 	"github.com/pkg/errors"
 )
 
@@ -76,4 +79,19 @@ func readSSHPublicKey(path string) (string, error) {
 	}
 
 	return string(bytes), nil
+}
+
+func nodeDNSName(nodeName string, clusterDomain string) string {
+	return fmt.Sprintf("%s.%s", nodeName, clusterDomain)
+}
+
+func generateNodeCertificate(nodeName, dnsDomain string, isMaster bool, caCertificate *x509.Certificate) (cert []byte, key []byte, err error) {
+	nodeDNSName := nodeDNSName(nodeName, dnsDomain)
+
+	hosts := []string{nodeDNSName}
+	if isMaster {
+		hosts = append(hosts, "kubernetes", "kubernetes.default", "kubernetes.default.svc", "kubernetes.default.svc."+dnsDomain)
+	}
+
+	return util.CreateCertificate(nodeDNSName, caCertificate, hosts...)
 }

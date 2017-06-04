@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 type controllerManagerTemplateParams struct {
 	ImageTag            string
@@ -13,13 +13,16 @@ metadata:
   name: kube-controller-manager
 spec:
   hostNetwork: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/node
   containers:
   - name: kube-controller-manager
     image: gcr.io/google_containers/kube-controller-manager:{{ .ImageTag }}
     command:
     - kube-controller-manager
     - "--address=0.0.0.0"
-    - "--master=127.0.0.1:8080"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig"
     - "--cluster-name={{ .ClusterName }}"
     - "--root-ca-file=/opt/kubernetes/certs/ca.pem"
     - "--service-account-private-key-file=/opt/kubernetes/certs/tls-key.pem"

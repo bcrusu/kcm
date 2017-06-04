@@ -66,7 +66,10 @@ func (s *addNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 		nodeName = s.nextNodeName(*cluster)
 	}
 
-	node := s.createNodeDefinition(nodeName, *cluster)
+	node, err := s.createNodeDefinition(nodeName, *cluster)
+	if err != nil {
+		return err
+	}
 
 	// lightweight validation
 	if err := node.Validate(); err != nil {
@@ -107,8 +110,18 @@ func (s *addNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 	return s.startNode(connection, *cluster, node)
 }
 
-func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.Cluster) repository.Node {
+func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.Cluster) (repository.Node, error) {
 	domainName := libvirtDomainName(cluster.Name, name)
+
+	caCertificate, err := util.ParseCertificate(cluster.CACertificate)
+	if err != nil {
+		return repository.Node{}, err
+	}
+
+	certificate, key, err := generateNodeCertificate(name, cluster.DNSDomain, s.IsMaster, caCertificate)
+	if err != nil {
+		return repository.Node{}, err
+	}
 
 	return repository.Node{
 		Name:                 name,
@@ -119,7 +132,10 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 		StoragePool:          cluster.StoragePool,
 		BackingStorageVolume: cluster.BackingStorageVolume,
 		StorageVolume:        libvirtStorageVolumeName(domainName),
-	}
+		Certificate:          certificate,
+		PrivateKey:           key,
+		DNSName:              nodeDNSName(name, cluster.DNSDomain),
+	}, nil
 }
 
 func (s *addNodeCmdState) nextNodeName(cluster repository.Cluster) string {

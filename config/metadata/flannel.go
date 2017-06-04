@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 type flannelTemplateParams struct {
 	ImageTag        string

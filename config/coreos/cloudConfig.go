@@ -8,6 +8,7 @@ type CloudConfigParams struct {
 	SSHPublicKey      string
 	NonMasqueradeCIDR string
 	Network           util.NetworkInfo
+	ClusterDomain     string
 }
 
 const cloudConfigTemplate = `#cloud-config
@@ -64,7 +65,7 @@ coreos:
         - name: 50-opts.conf
           content: |
             [Service]
-            Environment='DOCKER_OPTS=--bridge=cbr0 --iptables=false'
+            Environment='DOCKER_OPTS=--iptables=false'
     - name: docker-tcp.socket
       command: start
       enable: yes
@@ -100,7 +101,7 @@ coreos:
         Where=/opt/kubernetes/bin
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
-    - name: opt-kubernetes-metadata.mount
+    - name: opt-kubernetes-manifests.mount
       command: start
       content: |
         [Unit]
@@ -108,8 +109,43 @@ coreos:
         After=opt-kubernetes.mount
         Requires=opt-kubernetes.mount
         [Mount]
-        What=k8sConfigMetadata
-        Where=/opt/kubernetes/metadata
+        What=k8sConfigManifests
+        Where=/opt/kubernetes/manifests
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+
+    - name: kubelet.service
+      command: start
+      content: |
+        [Unit]
+        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service
+        ConditionFileIsExecutable=/opt/kubernetes/bin/kubelet
+        Description=Kubernetes Kubelet Server
+        Documentation=https://github.com/kubernetes/kubernetes
+        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service
+
+        [Service]
+        Restart=always
+        RestartSec=2
+        StartLimitInterval=0
+        KillMode=process
+        ExecStart=/opt/kubernetes/bin/kubelet \
+        --address=0.0.0.0 \
+        --hostname-override={{ .Hostname }} \
+        --cluster-domain={{ .ClusterDomain }} \
+        --kubeconfig=/opt/kubernetes/kubeconfig \
+        --require-kubeconfig=true \
+        --register-node=true \
+        --node-labels='kubernetes.io/role={{ Role }},node-role.kubernetes.io/{{ Role }}=' \
+        --network-plugin=cni \
+        --non-masquerade-cidr={{ .NonMasqueradeCIDR }} \
+        --allow-privileged=true \
+        --pod-manifest-path=/opt/kubernetes/manifests \
+        --tls-cert-file=/opt/kubernetes/certs/tls.pem \
+        --tls-private-key-file=/opt/kubernetes/certs/tls-key.pem \
+        --client-ca-file=/opt/kubernetes/certs/ca.pem {{ if .IsMaster }}\
+        --register-with-taints='node-role.kubernetes.io/master=:NoSchedule{{ end }}
+
+        [Install]
+        WantedBy=multi-user.target
 `

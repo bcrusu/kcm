@@ -1,4 +1,4 @@
-package metadata
+package manifests
 
 type apiServerTemplateParams struct {
 	ImageTag            string
@@ -11,6 +11,9 @@ metadata:
   name: kube-apiserver
 spec:
   hostNetwork: true
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/node
   containers:
   - name: kube-apiserver
     image: gcr.io/google_containers/kube-apiserver:{{ .ImageTag }}
@@ -18,7 +21,7 @@ spec:
     - kube-apiserver
     - "--apiserver-count=1"
     - "--allow-privileged=true"
-    - "--etcd-servers=http://127.0.0.1:2379"
+    - "--etcd-servers=127.0.0.1:2379"
     - "--bind-address=0.0.0.0"
     - "--anonymous-auth=false"
     - "--tls-cert-file=/opt/kubernetes/certs/tls.pem"

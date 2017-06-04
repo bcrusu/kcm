@@ -1,8 +1,6 @@
 package config
 
 import (
-	"crypto/x509"
-	"fmt"
 	"path"
 
 	"github.com/bcrusu/kcm/config/coreos"
@@ -17,7 +15,6 @@ type ClusterConfig struct {
 	clusterDir       string
 	cluster          repository.Cluster
 	kubernetesBinDir string
-	caCertificate    *x509.Certificate
 
 	// private/k8s network
 	podsNetworkCIDR     string
@@ -38,11 +35,6 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir strin
 		return nil, err
 	}
 
-	caCertificate, err := util.ParseCertificate(cluster.CACertificate)
-	if err != nil {
-		return nil, err
-	}
-
 	network, err := util.ParseNetworkCIDR(cluster.Network.IPv4CIDR)
 	if err != nil {
 		return nil, err
@@ -52,7 +44,6 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir strin
 		clusterDir:          clusterDir,
 		cluster:             cluster,
 		kubernetesBinDir:    path.Join(kubernetesCacheDir, cluster.KubernetesVersion, "kubernetes", "server", "bin"),
-		caCertificate:       caCertificate,
 		podsNetworkCIDR:     "10.2.0.0/17",
 		servicesNetworkCIDR: "10.2.128.0/17",
 		nonMasqueradeCIDR:   "10.2.0.0/16",
@@ -151,8 +142,8 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 			GuestPath: "k8sBin",
 		},
 		libvirt.FilesystemMount{
-			HostPath:  path.Join(c.clusterDir, "metadata"),
-			GuestPath: "k8sConfigMetadata",
+			HostPath:  path.Join(c.clusterDir, "manifests"),
+			GuestPath: "k8sConfigManifests",
 		},
 	}
 }
@@ -164,6 +155,7 @@ func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPubli
 		SSHPublicKey:      sshPublicKey,
 		NonMasqueradeCIDR: c.nonMasqueradeCIDR,
 		Network:           c.Network,
+		ClusterDomain:     c.cluster.DNSDomain,
 	}
 
 	if err := coreos.WriteCoreOSConfig(outDir, params); err != nil {
@@ -171,10 +163,6 @@ func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPubli
 	}
 
 	return nil
-}
-
-func (c ClusterConfig) nodeDNSName(nodeName string) string {
-	return fmt.Sprintf("%s.%s", nodeName, c.cluster.DNSDomain)
 }
 
 func (c ClusterConfig) nodeConfigDir(nodeName string) string {

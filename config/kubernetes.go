@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/bcrusu/kcm/config/kubeconfig"
 	"github.com/bcrusu/kcm/config/metadata"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
@@ -20,7 +21,7 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 	}
 
 	// create mount point for static pods manifests
-	if err := util.CreateDirectoryPath(path.Join(outDir, "metadata")); err != nil {
+	if err := util.CreateDirectoryPath(path.Join(outDir, "manifests")); err != nil {
 		return err
 	}
 
@@ -28,11 +29,15 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 		return err
 	}
 
+	if err := kubeconfig.WriteKubeconfig(path.Join(outDir, "kubeconfig"), node, c.cluster); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
-	params := &metadata.MetadataParams{
+	params := &manifests.Params{
 		ClusterName:         c.cluster.Name,
 		PodsNetworkCIDR:     c.podsNetworkCIDR,
 		ServicesNetworkCIDR: c.servicesNetworkCIDR,
@@ -43,14 +48,14 @@ func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
 		return err
 	}
 
-	if err := metadata.WriteMetadataFiles(path.Join(outDir, "metadata"), *params); err != nil {
+	if err := manifests.WriteManifests(path.Join(outDir, "manifests"), *params); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c ClusterConfig) readKubernetesImageTags(params *metadata.MetadataParams) error {
+func (c ClusterConfig) readKubernetesImageTags(params *manifests.Params) error {
 	var err error
 	readTag := func(fileName string) (string, error) {
 		bytes, err := ioutil.ReadFile(path.Join(c.kubernetesBinDir, fileName))
@@ -89,23 +94,11 @@ func (c ClusterConfig) writeCertificates(outDir string, node repository.Node) er
 		return err
 	}
 
-	nodeDNSName := c.nodeDNSName(node.Name)
-
-	hosts := []string{nodeDNSName}
-	if node.IsMaster {
-		hosts = append(hosts, "kubernetes", "kubernetes.default", "kubernetes.default.svc", "kubernetes.default.svc."+c.cluster.DNSDomain)
-	}
-
-	tlsCert, tlsKey, err := util.CreateCertificate(nodeDNSName, c.caCertificate, hosts...)
-	if err != nil {
+	if err := util.WriteFile(path.Join(outDir, "tls.pem"), node.Certificate); err != nil {
 		return err
 	}
 
-	if err := util.WriteFile(path.Join(outDir, "tls.pem"), tlsCert); err != nil {
-		return err
-	}
-
-	if err := util.WriteFile(path.Join(outDir, "tls-key.pem"), tlsKey); err != nil {
+	if err := util.WriteFile(path.Join(outDir, "tls-key.pem"), node.PrivateKey); err != nil {
 		return err
 	}
 

@@ -21,7 +21,7 @@ type Cluster struct {
 	CACertificate        []byte          `json:"caCertificate"`
 	CAPrivateKey         []byte          `json:"caPrivateKey"`
 	DNSDomain            string          `json:"dnsDomain"`
-	ServerURL            string          `json:"serverUrl"`
+	MasterURL            string          `json:"masterURL"`
 }
 
 type Node struct {
@@ -33,6 +33,9 @@ type Node struct {
 	StoragePool          string `json:"storagePool"`
 	BackingStorageVolume string `json:"backingStorageVolume"`
 	StorageVolume        string `json:"storageVolume"`
+	Certificate          []byte `json:"certificate"`
+	PrivateKey           []byte `json:"privateKey"`
+	DNSName              string `json:"dnsName"`
 }
 
 type Network struct {
@@ -124,8 +127,8 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: missing backing storage volume")
 	}
 
-	if c.ServerURL == "" {
-		return errors.New("repository: missing server URL")
+	if c.MasterURL == "" {
+		return errors.New("repository: missing master URL")
 	}
 
 	if err := c.Network.validate(); err != nil {
@@ -179,6 +182,18 @@ func (n *Node) Validate() error {
 
 	if n.MemoryMiB < 128 {
 		return errors.Errorf("repository: invalid memory value")
+	}
+
+	if n.Certificate == nil {
+		return errors.New("repository: missing node certificate")
+	}
+
+	if n.PrivateKey == nil {
+		return errors.New("repository: missing node private key")
+	}
+
+	if n.DNSName == "" {
+		return errors.New("repository: missing node DNS name")
 	}
 
 	return nil
