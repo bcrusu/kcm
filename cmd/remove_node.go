@@ -9,7 +9,6 @@ import (
 
 type removeNodeCmdState struct {
 	ClusterName string
-	IsMaster    bool
 }
 
 func newRemoveNodeCmd() *cobra.Command {
@@ -22,7 +21,6 @@ func newRemoveNodeCmd() *cobra.Command {
 
 	state := &removeNodeCmdState{}
 	cmd.PersistentFlags().StringVarP(&state.ClusterName, "cluster", "c", "", "Cluster that owns the node. If not specified, the current cluster will be used")
-	cmd.PersistentFlags().BoolVarP(&state.IsMaster, "master", "m", false, "Remove master node")
 
 	cmd.RunE = state.runE
 	return cmd

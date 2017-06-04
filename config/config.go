@@ -9,6 +9,7 @@ import (
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +53,7 @@ func (c ClusterConfig) StageNode(name string, sshPublicKey string) (*StageNodeRe
 		return nil, errors.Errorf("cluster '%s' does not contain node '%s'", c.cluster.Name, name)
 	}
 
-	nodeDir := path.Join(c.clusterDir, "nodes", node.Name)
+	nodeDir := c.nodeConfigDir(node.Name)
 	if err := prepareDirectory(nodeDir); err != nil {
 		return nil, err
 	}
@@ -76,7 +77,7 @@ func (c ClusterConfig) UnstageNode(name string) error {
 		return errors.Errorf("cluster '%s' does not contain node '%s'", c.cluster.Name, name)
 	}
 
-	nodeDir := path.Join(c.clusterDir, node.Name)
+	nodeDir := c.nodeConfigDir(node.Name)
 	exists, err := util.DirectoryExists(nodeDir)
 	if err != nil {
 		return err
@@ -158,9 +159,22 @@ func (c ClusterConfig) nodeDNSName(nodeName string) string {
 	return fmt.Sprintf("%s.%s", nodeName, c.cluster.DNSDomain)
 }
 
+func (c ClusterConfig) nodeConfigDir(nodeName string) string {
+	return path.Join(c.clusterDir, "nodes", nodeName)
+}
+
 func prepareDirectory(dir string) error {
-	if err := util.RemoveDirectory(dir); err != nil {
-		return errors.Wrapf(err, "failed to remove config directory '%s'", dir)
+	exists, err := util.DirectoryExists(dir)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		glog.Warningf("config directory '%s' exists - will be deleted", dir)
+
+		if err := util.RemoveDirectory(dir); err != nil {
+			return errors.Wrapf(err, "failed to remove config directory '%s'", dir)
+		}
 	}
 
 	if err := util.CreateDirectoryPath(dir); err != nil {

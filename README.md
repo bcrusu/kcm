@@ -24,6 +24,7 @@ TODO
 - [ ] Add 'verbose' flag
 - [ ] Add 'yes' flag for remove command
 - [ ] Check if KSM is not enabled & warn user
+- [ ] Better logging and output error messages
 
 ### Inspiration
 
