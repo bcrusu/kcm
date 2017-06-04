@@ -28,4 +28,5 @@ TODO
 ### Inspiration
 
 [CCM (Cassandra Cluster Manager)](https://github.com/pcmanus/ccm): A script to easily create and destroy an Apache Cassandra cluster on localhost
+
 [kube-up (deprecated)](https://github.com/kubernetes/kubernetes/tree/master/cluster)
