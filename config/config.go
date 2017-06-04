@@ -14,12 +14,18 @@ import (
 )
 
 type ClusterConfig struct {
-	clusterDir          string
-	cluster             repository.Cluster
-	kubernetesBinDir    string
-	caCertificate       *x509.Certificate
+	clusterDir       string
+	cluster          repository.Cluster
+	kubernetesBinDir string
+	caCertificate    *x509.Certificate
+
+	// private/k8s network
 	podsNetworkCIDR     string
 	servicesNetworkCIDR string
+	nonMasqueradeCIDR   string
+
+	// public/libvirt network
+	Network util.NetworkInfo
 }
 
 type StageNodeResult struct {
@@ -37,13 +43,20 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir strin
 		return nil, err
 	}
 
+	network, err := util.ParseNetworkCIDR(cluster.Network.IPv4CIDR)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ClusterConfig{
 		clusterDir:          clusterDir,
 		cluster:             cluster,
 		kubernetesBinDir:    path.Join(kubernetesCacheDir, cluster.KubernetesVersion, "kubernetes", "server", "bin"),
 		caCertificate:       caCertificate,
-		podsNetworkCIDR:     "10.2.0.0/16",
-		servicesNetworkCIDR: "10.3.0.0/16",
+		podsNetworkCIDR:     "10.2.0.0/17",
+		servicesNetworkCIDR: "10.2.128.0/17",
+		nonMasqueradeCIDR:   "10.2.0.0/16",
+		Network:             *network,
 	}, nil
 }
 
@@ -131,21 +144,26 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 		},
 		libvirt.FilesystemMount{
 			HostPath:  path.Join(nodeDir, "kubernetes"),
-			GuestPath: "kubernetesConfig",
+			GuestPath: "k8sConfig",
 		},
 		libvirt.FilesystemMount{
 			HostPath:  c.kubernetesBinDir,
-			GuestPath: "kubernetesBin",
+			GuestPath: "k8sBin",
+		},
+		libvirt.FilesystemMount{
+			HostPath:  path.Join(c.clusterDir, "metadata"),
+			GuestPath: "k8sConfigMetadata",
 		},
 	}
 }
 
 func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPublicKey string) error {
 	params := coreos.CloudConfigParams{
-		Hostname:        node.Name,
-		IsMaster:        node.IsMaster,
-		SSHPublicKey:    sshPublicKey,
-		PodsNetworkCIDR: c.podsNetworkCIDR,
+		Hostname:          node.Name,
+		IsMaster:          node.IsMaster,
+		SSHPublicKey:      sshPublicKey,
+		NonMasqueradeCIDR: c.nonMasqueradeCIDR,
+		Network:           c.Network,
 	}
 
 	if err := coreos.WriteCoreOSConfig(outDir, params); err != nil {

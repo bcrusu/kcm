@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"net"
+	"fmt"
 	"strconv"
 
 	"github.com/bcrusu/kcm/cmd/create"
@@ -54,7 +54,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
 	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the cluster immediately")
-	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Networks 10.2.0.0/16 and 10.3.0.0/16 are reserved for pod/services networks")
+	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Network 10.2.0.0/16 is reserved for pods/services network")
 	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
 	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 512, "Master node memory (in MiB)")
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
@@ -137,7 +137,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 }
 
 func (s *createCmdState) createClusterDefinition(clusterName string) (repository.Cluster, error) {
-	masterIP, err := s.getMasterIP()
+	serverURL, err := s.getServerURL()
 	if err != nil {
 		return repository.Cluster{}, err
 	}
@@ -156,7 +156,7 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		CoreOSVersion:        s.CoreOSVersion,
 		StoragePool:          s.LibvirtStoragePool,
 		BackingStorageVolume: backingStorageVolume,
-		MasterIP:             masterIP,
+		ServerURL:            serverURL,
 		Network: repository.Network{
 			Name:     libvirtNetworkName(clusterName),
 			IPv4CIDR: s.IPv4CIDR,
@@ -195,18 +195,13 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 	return cluster, nil
 }
 
-func (s *createCmdState) getMasterIP() (string, error) {
-	_, ipnet, err := net.ParseCIDR(s.IPv4CIDR)
+func (s *createCmdState) getServerURL() (string, error) {
+	network, err := util.ParseNetworkCIDR(s.IPv4CIDR)
 	if err != nil {
 		return "", errors.Wrapf(err, "invalid network CIDR '%s'", s.IPv4CIDR)
 	}
 
-	if len(ipnet.IP) != net.IPv4len {
-		return "", errors.Wrapf(err, "invalid network CIDR '%s' - expected IPv4 network", s.IPv4CIDR)
-	}
-
-	ip := util.GetMasterIP(ipnet)
-	return ip.String(), nil
+	return fmt.Sprintf("https://%s:6443", network.MasterIP), nil
 }
 
 func (s *createCmdState) setActiveCluster(clusterRepository repository.ClusterRepository, name string) {

@@ -30,6 +30,10 @@ func ExtractTar(in io.Reader, outDir string) error {
 		case tar.TypeReg, tar.TypeRegA:
 			fileMode := hdr.FileInfo().Mode()
 			fileMode |= os.FileMode(0044)
+			if fileMode&0100 != 0 {
+				fileMode |= os.FileMode(001)
+			}
+
 			file, err := CreateFile(filePath, fileMode)
 			if err != nil {
 				return errors.Wrapf(err, "extract tar: failed to create file '%s'", filePath)

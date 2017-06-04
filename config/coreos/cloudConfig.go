@@ -1,10 +1,13 @@
 package coreos
 
+import "github.com/bcrusu/kcm/util"
+
 type CloudConfigParams struct {
-	Hostname        string
-	IsMaster        bool
-	SSHPublicKey    string
-	PodsNetworkCIDR string
+	Hostname          string
+	IsMaster          bool
+	SSHPublicKey      string
+	NonMasqueradeCIDR string
+	Network           util.NetworkInfo
 }
 
 const cloudConfigTemplate = `#cloud-config
@@ -24,7 +27,6 @@ write_files:
 
 coreos:
 {{ if .IsMaster }}
-#TODO: etcd config
   etcd2:
     advertise-client-urls: http://0.0.0.0:2379
     listen-client-urls: http://0.0.0.0:2379
@@ -43,6 +45,17 @@ coreos:
           content: |
             [Service]
             Environment=ETCD_NAME=%H
+
+# only one master is supported atm. - it gets the 2nd IP in the network (1st IP is assigned to the bridge/gateway)
+    - name: static.network
+      command: start
+      content: |
+        [Match]
+        Name=eth0
+        [Network]
+        Address={{ .Network.MasterAddress }}
+        DNS={{ .Network.BridgeIP }}
+        Gateway={{ .Network.BridgeIP }}
 {{ end }}
 
     - name: docker.service
@@ -52,18 +65,29 @@ coreos:
           content: |
             [Service]
             Environment='DOCKER_OPTS=--bridge=cbr0 --iptables=false'
-            
+    - name: docker-tcp.socket
+      command: start
+      enable: yes
+      content: |
+        [Unit]
+        Description=Docker Socket for the API
+        [Socket]
+        ListenStream=2375
+        BindIPv6Only=both
+        Service=docker.service
+        [Install]
+        WantedBy=sockets.target
+
     - name: opt-kubernetes.mount
       command: start
       content: |
         [Unit]
         ConditionVirtualization=|vm
         [Mount]
-        What=kubernetesConfig
+        What=k8sConfig
         Where=/opt/kubernetes
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
-
     - name: opt-kubernetes-bin.mount
       command: start
       content: |
@@ -72,8 +96,20 @@ coreos:
         After=opt-kubernetes.mount
         Requires=opt-kubernetes.mount
         [Mount]
-        What=kubernetesBin
+        What=k8sBin
         Where=/opt/kubernetes/bin
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
+    - name: opt-kubernetes-metadata.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        After=opt-kubernetes.mount
+        Requires=opt-kubernetes.mount
+        [Mount]
+        What=k8sConfigMetadata
+        Where=/opt/kubernetes/metadata
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
 `

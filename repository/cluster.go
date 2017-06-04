@@ -16,12 +16,12 @@ type Cluster struct {
 	CoreOSChannel        string          `json:"coreOSChannel"`
 	Nodes                map[string]Node `json:"nodes"` //map[NODE_NAME]NODE
 	Network              Network         `json:"network"`
-	MasterIP             string          `json:"masterIP"`
 	StoragePool          string          `json:"storagePool"`
 	BackingStorageVolume string          `json:"backingStorageVolume"`
 	CACertificate        []byte          `json:"caCertificate"`
 	CAPrivateKey         []byte          `json:"caPrivateKey"`
 	DNSDomain            string          `json:"dnsDomain"`
+	ServerURL            string          `json:"serverUrl"`
 }
 
 type Node struct {
@@ -51,10 +51,18 @@ func loadCluster(clusterFile string) (*Cluster, error) {
 		return nil, errors.Wrapf(err, "repository: failed to unmarshall cluster '%s'", clusterFile)
 	}
 
+	if err := cluster.Validate(); err != nil {
+		return nil, errors.Wrapf(err, "repository: validation failed for cluster '%s'", clusterFile)
+	}
+
 	return cluster, nil
 }
 
 func (c *Cluster) save(clusterFile string) error {
+	if err := c.Validate(); err != nil {
+		return errors.Wrapf(err, "repository: cluster '%s' validation failed", c.Name)
+	}
+
 	bytes, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
 		return errors.Wrapf(err, "repository: failed to marshall cluster '%s'", c.Name)
@@ -116,8 +124,8 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: missing backing storage volume")
 	}
 
-	if c.MasterIP == "" {
-		return errors.New("repository: missing master IP")
+	if c.ServerURL == "" {
+		return errors.New("repository: missing server URL")
 	}
 
 	if err := c.Network.validate(); err != nil {

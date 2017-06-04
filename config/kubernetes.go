@@ -32,7 +32,6 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 }
 
 func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
-
 	params := &metadata.MetadataParams{
 		ClusterName:         c.cluster.Name,
 		PodsNetworkCIDR:     c.podsNetworkCIDR,

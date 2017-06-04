@@ -116,10 +116,6 @@ func (r *clusterRepository) SetCurrent(name string) error {
 }
 
 func (r *clusterRepository) Save(cluster Cluster) error {
-	if err := cluster.Validate(); err != nil {
-		return errors.Wrap(err, "repository: failed to save cluster")
-	}
-
 	filePath := r.clusterFile(cluster.Name)
 	if err := cluster.save(filePath); err != nil {
 		return err

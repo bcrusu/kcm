@@ -1,8 +1,6 @@
 package libvirt
 
 import (
-	"net"
-
 	"github.com/bcrusu/kcm/libvirtxml"
 	"github.com/bcrusu/kcm/util"
 	"github.com/golang/glog"
@@ -97,35 +95,26 @@ func defineNATNetwork(connect *libvirt.Connect, params DefineNetworkParams) erro
 }
 
 func addIP(network libvirtxml.Network, cidr string) error {
-	ip, ipnet, err := net.ParseCIDR(cidr)
+	networkInfo, err := util.ParseNetworkCIDR(cidr)
 	if err != nil {
 		return errors.Wrapf(err, "libvirt: failed to define network - invalid CIDR '%s'", cidr)
 	}
 
-	var family string
-	switch len(ipnet.IP) {
-	case net.IPv4len:
-		family = "ipv4"
-	case net.IPv6len:
+	if networkInfo.Family != "ipv4" {
 		return errors.Errorf("libvirt: IPv6 network not supported '%s'", cidr)
-	default:
-		return errors.Wrapf(err, "libvirt: failed to define network - invalid CIDR IP '%s'", ip)
 	}
 
-	prefix, bits := ipnet.Mask.Size()
+	prefix, bits := networkInfo.Net.Mask.Size()
 	if bits-prefix < 3 {
 		return errors.Wrapf(err, "libvirt: failed to define network - network is too small '%s'", cidr)
 	}
 
-	bridgeIP := util.GetBridgeIP(ipnet)
-
 	ipXML := network.NewIP()
-	ipXML.SetFamily(family)
-	ipXML.SetAddress(bridgeIP.String())
+	ipXML.SetFamily(networkInfo.Family)
+	ipXML.SetAddress(networkInfo.BridgeIP.String())
 	ipXML.SetPrefix(prefix)
 
-	dhcpStart, dhcpEnd := util.GetDHCPRange(ipnet)
-	ipXML.SetDHCPRange(dhcpStart.String(), dhcpEnd.String())
+	ipXML.SetDHCPRange(networkInfo.DHCPRangeStart.String(), networkInfo.DHCPRangeEnd.String())
 
 	return nil
 }
