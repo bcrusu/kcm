@@ -7,6 +7,16 @@ import (
 )
 
 func Node(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
+	node repository.Node, networkName, sshPublicKey string) error {
+	macAddresses, err := connection.GenerateUniqueMACAddresses(1)
+	if err != nil {
+		return err
+	}
+
+	return nodeInternal(connection, clusterConfig, node, networkName, macAddresses[0], sshPublicKey)
+}
+
+func nodeInternal(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
 	node repository.Node, networkName, networkInterfaceMAC string, sshPublicKey string) error {
 
 	storageVolume, err := connection.CreateStorageVolume(node.StoragePool, node.StorageVolume, node.BackingStorageVolume)

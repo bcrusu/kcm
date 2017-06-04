@@ -91,7 +91,7 @@ func (c *Cluster) Validate() error {
 
 	mastersCount := 0
 	for _, node := range c.Nodes {
-		if err := node.validate(); err != nil {
+		if err := node.Validate(); err != nil {
 			return err
 		}
 
@@ -139,7 +139,7 @@ func (c *Cluster) Validate() error {
 	return nil
 }
 
-func (n *Node) validate() error {
+func (n *Node) Validate() error {
 	//TODO: name must be a valid dns host name
 	if n == nil {
 		return errors.Errorf("repository: nil node")

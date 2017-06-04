@@ -11,6 +11,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+const MasterNodeNamePrefix = "master"
+const NodeNamePrefix = "node"
+
 func newClusterRepository() (repository.ClusterRepository, error) {
 	repoPath := path.Join(*dataDir, "clusters")
 	return repository.New(repoPath)

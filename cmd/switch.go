@@ -5,28 +5,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type switchCmdState struct {
+	Clear bool
+}
+
 func newSwitchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "switch CLUSTER_NAME",
-		Short:        "Switch of current (active) cluster",
+		Short:        "Switches the current cluster",
 		SilenceUsage: true,
 	}
 
-	cmd.RunE = switchCmdRunE
+	state := &switchCmdState{}
+	cmd.PersistentFlags().BoolVarP(&state.Clear, "clear", "c", false, "Clears the current cluster")
+
+	cmd.RunE = state.runE
 	return cmd
 }
 
-func switchCmdRunE(cmd *cobra.Command, args []string) error {
+func (s *switchCmdState) runE(cmd *cobra.Command, args []string) error {
+	clusterRepository, err := newClusterRepository()
+	if err != nil {
+		return err
+	}
+
+	if s.Clear {
+		return clusterRepository.SetCurrent("")
+	}
+
 	if len(args) != 1 {
 		return errors.New("invalid command arguments")
 	}
 
 	clusterName := args[0]
-
-	clusterRepository, err := newClusterRepository()
-	if err != nil {
-		return err
-	}
 
 	{
 		current, err := clusterRepository.Current()
@@ -35,7 +46,7 @@ func switchCmdRunE(cmd *cobra.Command, args []string) error {
 		}
 
 		if current != nil && current.Name == clusterName {
-			// is already the active cluster
+			// is already the current cluster
 			return nil
 		}
 	}

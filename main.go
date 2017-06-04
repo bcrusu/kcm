@@ -1,13 +1,16 @@
 package main
 
 import (
-	"log"
+	"flag"
 
 	"github.com/bcrusu/kcm/cmd"
+	"github.com/golang/glog"
 )
 
 func main() {
+	flag.Parse()
+
 	if err := cmd.RootCmd.Execute(); err != nil {
-		log.Fatalf("Unexpected error: %s", err)
+		glog.V(2).Info(err)
 	}
 }

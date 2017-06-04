@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/bcrusu/kcm/cmd/remove"
-	"github.com/bcrusu/kcm/repository"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -22,7 +21,7 @@ func newRemoveNodeCmd() *cobra.Command {
 	}
 
 	state := &removeNodeCmdState{}
-	cmd.PersistentFlags().StringVarP(&state.ClusterName, "cluster", "c", "", "Cluster that owns the node")
+	cmd.PersistentFlags().StringVarP(&state.ClusterName, "cluster", "c", "", "Cluster that owns the node. If not specified, the current cluster will be used")
 	cmd.PersistentFlags().BoolVarP(&state.IsMaster, "master", "m", false, "Remove master node")
 
 	cmd.RunE = state.runE
@@ -46,20 +45,11 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	var toRemove *repository.Node
-	for _, node := range cluster.Nodes {
-		if nodeName == node.Name {
-			toRemove = &node
-			break
-		}
-	}
-
-	if toRemove == nil {
-		glog.Warningf("cluster '%s' does not contain node '%s'", cluster.Name, nodeName)
+	toRemove, ok := cluster.Nodes[nodeName]
+	if !ok {
+		glog.Errorf("cluster '%s' does not contain node '%s'", cluster.Name, nodeName)
 		return nil
 	}
-
-	//TODO: do not allow to remove last node?
 
 	connection, err := connectLibvirt()
 	if err != nil {
@@ -72,7 +62,7 @@ func (s *removeNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := remove.Node(connection, clusterConfig, *toRemove); err != nil {
+	if err := remove.Node(connection, clusterConfig, toRemove); err != nil {
 		return errors.Wrapf(err, "failed to remove node '%s' in cluster '%s'", nodeName, cluster.Name)
 	}
 

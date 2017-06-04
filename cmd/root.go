@@ -21,6 +21,8 @@ func init() {
 	RootCmd.AddCommand(newStartCmd())
 	RootCmd.AddCommand(newStopCmd())
 	RootCmd.AddCommand(newListCmd())
+	RootCmd.AddCommand(newCurrentCmd())
+	RootCmd.AddCommand(newAddNodeCmd())
 }
 
 var RootCmd = &cobra.Command{

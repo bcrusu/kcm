@@ -99,6 +99,10 @@ func (r *clusterRepository) Current() (*Cluster, error) {
 }
 
 func (r *clusterRepository) SetCurrent(name string) error {
+	if name == "" {
+		return r.clearCurrentClusterName()
+	}
+
 	filePath := path.Join(r.path, currentClusterFileName)
 	data := []byte(name)
 
@@ -140,7 +144,7 @@ func (r *clusterRepository) Remove(name string) error {
 	}
 
 	if name == *r.currentCluster {
-		return r.resetCurrentClusterName()
+		return r.clearCurrentClusterName()
 	}
 
 	return nil
@@ -177,7 +181,7 @@ func (r *clusterRepository) loadCurrentClusterName() error {
 	return nil
 }
 
-func (r *clusterRepository) resetCurrentClusterName() error {
+func (r *clusterRepository) clearCurrentClusterName() error {
 	filePath := path.Join(r.path, currentClusterFileName)
 	err := os.Remove(filePath)
 	if err != nil {
@@ -185,7 +189,7 @@ func (r *clusterRepository) resetCurrentClusterName() error {
 			return nil
 		}
 
-		return errors.Wrap(err, "repository: failed to reset current cluster name")
+		return errors.Wrap(err, "repository: failed to clear current cluster name")
 	}
 
 	r.currentCluster = nil

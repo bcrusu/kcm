@@ -6,9 +6,11 @@ import (
 
 	"github.com/bcrusu/kcm/cmd/create"
 	"github.com/bcrusu/kcm/cmd/download"
+	"github.com/bcrusu/kcm/cmd/start"
 	"github.com/bcrusu/kcm/cmd/validate"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
+	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +24,6 @@ type createCmdState struct {
 	CoreOSVersion      string
 	CoreOSChannel      string
 	LibvirtStoragePool string
-	ClusterName        string
 	MasterCount        uint
 	NodesCount         uint
 	KubernetesNetwork  string
@@ -52,7 +53,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 1, "Initial number of nodes in the cluster") //TODO: set value to 3
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
-	cmd.PersistentFlags().BoolVar(&state.Start, "start", false, "Start the cluster immediately")
+	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the cluster immediately")
 	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Networks 10.2.0.0/16 and 10.3.0.0/16 are reserved for pod/services networks")
 	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
 	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 512, "Master node memory (in MiB)")
@@ -68,9 +69,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return errors.New("invalid command arguments")
 	}
 
-	s.ClusterName = args[0]
-
-	cluster, err := s.createClusterDefinition()
+	cluster, err := s.createClusterDefinition(args[0])
 	if err != nil {
 		return err
 	}
@@ -106,7 +105,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 	defer connection.Close()
 
 	// check for name conflicts/missing libvirt objects
-	if err := validate.LibvirtObjects(connection, cluster); err != nil {
+	if err := validate.LibvirtClusterObjects(connection, cluster); err != nil {
 		return err
 	}
 
@@ -128,12 +127,16 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// TODO: make the cluster active
+	s.setActiveCluster(clusterRepository, cluster.Name)
+
+	if s.Start {
+		return start.Cluster(connection, cluster)
+	}
 
 	return nil
 }
 
-func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
+func (s *createCmdState) createClusterDefinition(clusterName string) (repository.Cluster, error) {
 	masterIP, err := s.getMasterIP()
 	if err != nil {
 		return repository.Cluster{}, err
@@ -141,13 +144,13 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 
 	backingStorageVolume := coreOSStorageVolumeName(s.CoreOSVersion)
 
-	caCertificate, caKey, err := util.CreateCACertificate(s.ClusterName + "-ca")
+	caCertificate, caKey, err := util.CreateCACertificate(clusterName + "-ca")
 	if err != nil {
 		return repository.Cluster{}, err
 	}
 
 	cluster := repository.Cluster{
-		Name:                 s.ClusterName,
+		Name:                 clusterName,
 		KubernetesVersion:    s.KubernetesVersion,
 		CoreOSChannel:        s.CoreOSChannel,
 		CoreOSVersion:        s.CoreOSVersion,
@@ -155,17 +158,17 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 		BackingStorageVolume: backingStorageVolume,
 		MasterIP:             masterIP,
 		Network: repository.Network{
-			Name:     libvirtNetworkName(s.ClusterName),
+			Name:     libvirtNetworkName(clusterName),
 			IPv4CIDR: s.IPv4CIDR,
 		},
 		Nodes:         make(map[string]repository.Node),
 		CACertificate: caCertificate,
 		CAPrivateKey:  caKey,
-		DNSDomain:     s.ClusterName + ".local",
+		DNSDomain:     clusterName + ".local",
 	}
 
 	addNode := func(name string, isMaster bool) {
-		domainName := libvirtDomainName(s.ClusterName, name)
+		domainName := libvirtDomainName(clusterName, name)
 
 		cluster.Nodes[name] = repository.Node{
 			Name:                 name,
@@ -180,12 +183,12 @@ func (s *createCmdState) createClusterDefinition() (repository.Cluster, error) {
 	}
 
 	for i := uint(1); i <= s.MasterCount; i++ {
-		name := "master" + strconv.FormatUint(uint64(i), 10)
+		name := MasterNodeNamePrefix + strconv.FormatUint(uint64(i), 10)
 		addNode(name, true)
 	}
 
 	for i := uint(1); i <= s.NodesCount; i++ {
-		name := "node" + strconv.FormatUint(uint64(i), 10)
+		name := NodeNamePrefix + strconv.FormatUint(uint64(i), 10)
 		addNode(name, false)
 	}
 
@@ -204,4 +207,21 @@ func (s *createCmdState) getMasterIP() (string, error) {
 
 	ip := util.GetMasterIP(ipnet)
 	return ip.String(), nil
+}
+
+func (s *createCmdState) setActiveCluster(clusterRepository repository.ClusterRepository, name string) {
+	currentActiveCluster, err := clusterRepository.Current()
+	if err != nil {
+		glog.Error(err)
+		return
+	}
+
+	if currentActiveCluster != nil {
+		// only set the active cluster if none is currently set
+		return
+	}
+
+	if err := clusterRepository.SetCurrent(name); err != nil {
+		glog.Errorf("failed to set current cluster. Error: %v", err)
+	}
 }

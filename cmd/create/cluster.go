@@ -23,7 +23,7 @@ func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig
 
 	index := 0
 	for _, node := range cluster.Nodes {
-		if err := Node(connection, clusterConfig, node, cluster.Network.Name, macAddresses[index], sshPublicKey); err != nil {
+		if err := nodeInternal(connection, clusterConfig, node, cluster.Network.Name, macAddresses[index], sshPublicKey); err != nil {
 			return err
 		}
 
