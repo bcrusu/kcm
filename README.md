@@ -2,10 +2,9 @@
 
 ### Prerequisites
 
-TODO
+[libvirt](https://libvirt.org)
 
-libvirt
-KVM/QEMU
+[QEMU](http://www.qemu.org)/[KVM](https://www.linux-kvm.org/page/Main_Page)
 
 ### Installation
 
@@ -29,4 +28,4 @@ TODO
 ### Inspiration
 
 [CCM (Cassandra Cluster Manager)](https://github.com/pcmanus/ccm): A script to easily create and destroy an Apache Cassandra cluster on localhost
-
+[kube-up (deprecated)](https://github.com/kubernetes/kubernetes/tree/master/cluster)
