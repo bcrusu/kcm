@@ -46,18 +46,15 @@ coreos:
           content: |
             [Service]
             Environment=ETCD_NAME=%H
-
-# only one master is supported atm. - it gets the 2nd IP in the network (1st IP is assigned to the bridge/gateway)
-    - name: static.network
+{{ end }}
+    - name: dhcp.network
       command: start
       content: |
         [Match]
         Name=eth0
         [Network]
-        Address={{ .Network.MasterAddress }}
-        DNS={{ .Network.BridgeIP }}
-        Gateway={{ .Network.BridgeIP }}
-{{ end }}
+        DHCP=yes
+        SendHostname=true
 
     - name: docker.service
       command: start

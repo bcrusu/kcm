@@ -15,7 +15,7 @@ import (
 
 type addNodeCmdState struct {
 	ClusterName      string
-	IsMaster         bool
+	IsMaster         bool //TODO: allow only one master atm.
 	SSHPublicKeyPath string
 	Start            bool
 	CPUs             uint
@@ -112,20 +112,14 @@ func (s *addNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 
 func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.Cluster) (repository.Node, error) {
 	domainName := libvirtDomainName(cluster.Name, name)
+	dnsName := nodeDNSName(name, cluster.DNSDomain)
 
 	caCertificate, err := util.ParseCertificate(cluster.CACertificate)
 	if err != nil {
 		return repository.Node{}, err
 	}
 
-	var certificate []byte
-	var key []byte
-	if s.IsMaster {
-		certificate, key, err = generateMasterCertificate(name, cluster.DNSDomain, cluster.MasterIP, caCertificate)
-	} else {
-		certificate, key, err = generateNodeCertificate(name, cluster.DNSDomain, caCertificate)
-	}
-
+	certificate, key, err := util.CreateCertificate(dnsName, caCertificate, dnsName)
 	if err != nil {
 		return repository.Node{}, err
 	}
@@ -141,7 +135,7 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 		StorageVolume:        libvirtStorageVolumeName(domainName),
 		Certificate:          certificate,
 		PrivateKey:           key,
-		DNSName:              nodeDNSName(name, cluster.DNSDomain),
+		DNSName:              dnsName,
 	}, nil
 }
 

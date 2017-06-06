@@ -25,7 +25,7 @@ func WriteKubeconfig(filename string, node repository.Node, cluster repository.C
 				Name: "local",
 				Cluster: KubectlCluster{
 					CertificateAuthorityData: cluster.CACertificate,
-					Server: cluster.MasterURL,
+					Server: cluster.ServerURL,
 				},
 			},
 		},

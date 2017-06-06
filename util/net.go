@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net"
 
 	"github.com/pkg/errors"
@@ -10,8 +9,6 @@ import (
 type NetworkInfo struct {
 	Family         string // ipv4 or ipv6
 	BridgeIP       net.IP
-	MasterIP       net.IP
-	MasterAddress  string // e.g. 10.1.0.2/16
 	DHCPRangeStart net.IP
 	DHCPRangeEnd   net.IP
 	Net            *net.IPNet
@@ -38,8 +35,6 @@ func ParseNetworkCIDR(cidr string) (*NetworkInfo, error) {
 	return &NetworkInfo{
 		Family:         family,
 		BridgeIP:       getBridgeIP(ipnet),
-		MasterIP:       getMasterIP(ipnet),
-		MasterAddress:  getMasterAddress(ipnet),
 		DHCPRangeStart: dhcpStart,
 		DHCPRangeEnd:   dhcpEnd,
 		Net:            ipnet,
@@ -54,28 +49,13 @@ func getBridgeIP(net *net.IPNet) net.IP {
 	return result
 }
 
-func getMasterIP(net *net.IPNet) net.IP {
-	result := make([]byte, len(net.IP))
-	copy(result, net.IP)
-
-	result[len(result)-1] += 2
-	return result
-}
-
-func getMasterAddress(net *net.IPNet) string {
-	ip := getMasterIP(net)
-	size, _ := net.Mask.Size()
-
-	return fmt.Sprintf("%s/%d", ip, size)
-}
-
 func getDHCPRange(ipnet *net.IPNet) (net.IP, net.IP) {
 	ipLen := len(ipnet.IP)
 
 	start := make([]byte, ipLen)
 	{
 		copy(start, ipnet.IP)
-		start[ipLen-1] += 3 // first IP is assigned to the bridge and 2nd to the master/load balancer
+		start[ipLen-1] += 2 // first IP is assigned to the bridge
 	}
 
 	end := make([]byte, ipLen)

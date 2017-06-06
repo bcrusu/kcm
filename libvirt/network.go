@@ -11,6 +11,7 @@ import (
 type DefineNetworkParams struct {
 	Name     string
 	IPv4CIDR string
+	Domain   string
 	Metadata map[string]string // map[NAME]VALUE
 }
 
@@ -69,6 +70,9 @@ func defineNATNetwork(connect *libvirt.Connect, params DefineNetworkParams) erro
 	networkXML.Forward().SetNATPortRange(1024, 65535)
 
 	networkXML.Bridge().SetSTP(true)
+
+	networkXML.Domain().SetName(params.Domain)
+	networkXML.Domain().SetLocalOnly(true)
 
 	if params.IPv4CIDR != "" {
 		addIP(networkXML, params.IPv4CIDR)

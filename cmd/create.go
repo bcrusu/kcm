@@ -24,7 +24,6 @@ type createCmdState struct {
 	CoreOSVersion      string
 	CoreOSChannel      string
 	LibvirtStoragePool string
-	MasterCount        uint
 	NodesCount         uint
 	KubernetesNetwork  string
 	SSHPublicKeyPath   string
@@ -49,7 +48,6 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
 	cmd.PersistentFlags().StringVar(&state.LibvirtStoragePool, "libvirt-pool", "default", "Libvirt storage pool")
-	cmd.PersistentFlags().UintVar(&state.MasterCount, "master-count", 1, "Initial number of masters in the cluster")
 	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 1, "Initial number of nodes in the cluster") //TODO: set value to 3
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
@@ -137,11 +135,6 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 }
 
 func (s *createCmdState) createClusterDefinition(clusterName string) (repository.Cluster, error) {
-	network, err := util.ParseNetworkCIDR(s.IPv4CIDR)
-	if err != nil {
-		return repository.Cluster{}, errors.Wrapf(err, "invalid network CIDR '%s'", s.IPv4CIDR)
-	}
-
 	backingStorageVolume := coreOSStorageVolumeName(s.CoreOSVersion)
 
 	caCertificateBytes, caKeyBytes, err := util.CreateCACertificate(clusterName + "-ca")
@@ -161,8 +154,6 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		CoreOSVersion:        s.CoreOSVersion,
 		StoragePool:          s.LibvirtStoragePool,
 		BackingStorageVolume: backingStorageVolume,
-		MasterIP:             network.MasterIP.String(),
-		MasterURL:            fmt.Sprintf("https://%s:6443", network.MasterIP),
 		Network: repository.Network{
 			Name:     libvirtNetworkName(clusterName),
 			IPv4CIDR: s.IPv4CIDR,
@@ -175,42 +166,40 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 
 	addNode := func(name string, isMaster bool) error {
 		domainName := libvirtDomainName(clusterName, name)
+		dnsName := nodeDNSName(name, cluster.DNSDomain)
 
-		var certificate []byte
-		var key []byte
-		var err error
-		if isMaster {
-			certificate, key, err = generateMasterCertificate(name, cluster.DNSDomain, network.MasterIP.String(), caCertificate)
-		} else {
-			certificate, key, err = generateNodeCertificate(name, cluster.DNSDomain, caCertificate)
-		}
-
+		certificate, key, err := util.CreateCertificate(dnsName, caCertificate, dnsName)
 		if err != nil {
 			return err
 		}
 
-		cluster.Nodes[name] = repository.Node{
+		node := repository.Node{
 			Name:                 name,
 			IsMaster:             isMaster,
 			Domain:               domainName,
 			StoragePool:          s.LibvirtStoragePool,
 			BackingStorageVolume: backingStorageVolume,
 			StorageVolume:        libvirtStorageVolumeName(domainName),
-			CPUs:                 s.MasterCPUs,
-			MemoryMiB:            s.MasterMemory,
 			Certificate:          certificate,
 			PrivateKey:           key,
-			DNSName:              nodeDNSName(name, cluster.DNSDomain),
+			DNSName:              dnsName,
 		}
 
+		if isMaster {
+			node.CPUs = s.MasterCPUs
+			node.MemoryMiB = s.MasterMemory
+		} else {
+			node.CPUs = s.NondeCPUs
+			node.MemoryMiB = s.NodeMemory
+		}
+
+		cluster.Nodes[name] = node
 		return nil
 	}
 
-	for i := uint(1); i <= s.MasterCount; i++ {
-		name := MasterNodeNamePrefix + strconv.FormatUint(uint64(i), 10)
-		if err := addNode(name, true); err != nil {
-			return repository.Cluster{}, err
-		}
+	masterName := MasterNodeNamePrefix
+	if err := addNode(masterName, true); err != nil {
+		return repository.Cluster{}, err
 	}
 
 	for i := uint(1); i <= s.NodesCount; i++ {
@@ -219,6 +208,8 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 			return repository.Cluster{}, err
 		}
 	}
+
+	cluster.ServerURL = fmt.Sprintf("https://%s:6443", cluster.Nodes[masterName].DNSName)
 
 	return cluster, nil
 }

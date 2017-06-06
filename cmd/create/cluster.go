@@ -12,7 +12,7 @@ func Cluster(connection *libvirt.Connection, clusterConfig *config.ClusterConfig
 		return err
 	}
 
-	if err := Network(connection, cluster.Network); err != nil {
+	if err := Network(connection, cluster.Network, cluster.DNSDomain); err != nil {
 		return err
 	}
 

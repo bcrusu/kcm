@@ -21,8 +21,7 @@ type Cluster struct {
 	CACertificate        []byte          `json:"caCertificate"`
 	CAPrivateKey         []byte          `json:"caPrivateKey"`
 	DNSDomain            string          `json:"dnsDomain"`
-	MasterURL            string          `json:"masterUrl"`
-	MasterIP             string          `json:"masterIp"`
+	ServerURL            string          `json:"ServerUrl"`
 }
 
 type Node struct {
@@ -128,12 +127,8 @@ func (c *Cluster) Validate() error {
 		return errors.New("repository: missing backing storage volume")
 	}
 
-	if c.MasterURL == "" {
-		return errors.New("repository: missing master URL")
-	}
-
-	if c.MasterIP == "" {
-		return errors.New("repository: missing master IP")
+	if c.ServerURL == "" {
+		return errors.New("repository: missing server URL")
 	}
 
 	if err := c.Network.validate(); err != nil {

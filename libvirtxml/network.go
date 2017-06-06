@@ -95,3 +95,13 @@ func (s Network) Metadata() Metadata {
 	node := s.root.ensureNode(nameForLocal("metadata"))
 	return newMetadata(node)
 }
+
+func (s Network) Domain() NetworDomain {
+	node := s.root.ensureNode(nameForLocal("domain"))
+	return newNetworkDomain(node)
+}
+
+func (s Network) DNS() NetworkDNS {
+	node := s.root.ensureNode(nameForLocal("dns"))
+	return newNetworkDNS(node)
+}
