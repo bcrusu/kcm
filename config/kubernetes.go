@@ -5,7 +5,7 @@ import (
 	"path"
 
 	"github.com/bcrusu/kcm/config/kubeconfig"
-	"github.com/bcrusu/kcm/config/metadata"
+	"github.com/bcrusu/kcm/config/manifests"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
 )

@@ -8,12 +8,6 @@ import (
 )
 
 func WriteKubeconfig(filename string, node repository.Node, cluster repository.Cluster) error {
-	server := cluster.MasterURL
-
-	if node.IsMaster {
-		server = "https://127.0.0.1"
-	}
-
 	config := &KubectlConfig{
 		ApiVersion: "v1",
 		Kind:       "Config",
@@ -31,7 +25,7 @@ func WriteKubeconfig(filename string, node repository.Node, cluster repository.C
 				Name: "local",
 				Cluster: KubectlCluster{
 					CertificateAuthorityData: cluster.CACertificate,
-					Server: server,
+					Server: cluster.MasterURL,
 				},
 			},
 		},

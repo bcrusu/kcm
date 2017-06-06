@@ -118,7 +118,14 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 		return repository.Node{}, err
 	}
 
-	certificate, key, err := generateNodeCertificate(name, cluster.DNSDomain, s.IsMaster, caCertificate)
+	var certificate []byte
+	var key []byte
+	if s.IsMaster {
+		certificate, key, err = generateMasterCertificate(name, cluster.DNSDomain, cluster.MasterIP, caCertificate)
+	} else {
+		certificate, key, err = generateNodeCertificate(name, cluster.DNSDomain, caCertificate)
+	}
+
 	if err != nil {
 		return repository.Node{}, err
 	}

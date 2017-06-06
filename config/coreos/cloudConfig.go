@@ -118,11 +118,11 @@ coreos:
       command: start
       content: |
         [Unit]
-        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service
+        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service load-k8s-images.service
         ConditionFileIsExecutable=/opt/kubernetes/bin/kubelet
         Description=Kubernetes Kubelet Server
         Documentation=https://github.com/kubernetes/kubernetes
-        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service
+        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service load-k8s-images.service
 
         [Service]
         Restart=always
@@ -144,8 +144,26 @@ coreos:
         --tls-cert-file=/opt/kubernetes/certs/tls.pem \
         --tls-private-key-file=/opt/kubernetes/certs/tls-key.pem \
         --client-ca-file=/opt/kubernetes/certs/ca.pem {{ if .IsMaster }}\
-        --register-with-taints='node-role.kubernetes.io/master=:NoSchedule{{ end }}
+        --register-with-taints='node-role.kubernetes.io/master=:NoSchedule'{{ end }}
 
         [Install]
         WantedBy=multi-user.target
+
+    - name: load-k8s-images.service
+      command: start
+      content: |
+        [Unit]
+        Description=Load Kubernetes images to Docker
+        After=opt-kubernetes-bin.mount docker.service
+        Requires=opt-kubernetes-bin.mount docker.service
+
+        [Service]
+        WorkingDirectory=/opt/kubernetes/bin
+        Type=forking
+        KillMode=process
+{{ if .IsMaster }}
+        ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar &&docker load -i kube-scheduler.tar'
+{{ else }}
+        ExecStart=/usr/bin/docker load -i kube-proxy.tar
+{{ end }}
 `

@@ -137,9 +137,9 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 }
 
 func (s *createCmdState) createClusterDefinition(clusterName string) (repository.Cluster, error) {
-	masterURL, err := s.getMasterURL()
+	network, err := util.ParseNetworkCIDR(s.IPv4CIDR)
 	if err != nil {
-		return repository.Cluster{}, err
+		return repository.Cluster{}, errors.Wrapf(err, "invalid network CIDR '%s'", s.IPv4CIDR)
 	}
 
 	backingStorageVolume := coreOSStorageVolumeName(s.CoreOSVersion)
@@ -161,7 +161,8 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		CoreOSVersion:        s.CoreOSVersion,
 		StoragePool:          s.LibvirtStoragePool,
 		BackingStorageVolume: backingStorageVolume,
-		MasterURL:            masterURL,
+		MasterIP:             network.MasterIP.String(),
+		MasterURL:            fmt.Sprintf("https://%s:6443", network.MasterIP),
 		Network: repository.Network{
 			Name:     libvirtNetworkName(clusterName),
 			IPv4CIDR: s.IPv4CIDR,
@@ -175,7 +176,15 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 	addNode := func(name string, isMaster bool) error {
 		domainName := libvirtDomainName(clusterName, name)
 
-		certificate, key, err := generateNodeCertificate(name, cluster.DNSDomain, isMaster, caCertificate)
+		var certificate []byte
+		var key []byte
+		var err error
+		if isMaster {
+			certificate, key, err = generateMasterCertificate(name, cluster.DNSDomain, network.MasterIP.String(), caCertificate)
+		} else {
+			certificate, key, err = generateNodeCertificate(name, cluster.DNSDomain, caCertificate)
+		}
+
 		if err != nil {
 			return err
 		}
@@ -212,15 +221,6 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 	}
 
 	return cluster, nil
-}
-
-func (s *createCmdState) getMasterURL() (string, error) {
-	network, err := util.ParseNetworkCIDR(s.IPv4CIDR)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid network CIDR '%s'", s.IPv4CIDR)
-	}
-
-	return fmt.Sprintf("https://%s", network.MasterIP), nil
 }
 
 func (s *createCmdState) setActiveCluster(clusterRepository repository.ClusterRepository, name string) {

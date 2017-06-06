@@ -139,7 +139,7 @@ func (r *clusterRepository) Remove(name string) error {
 		return errors.Wrapf(err, "repository: failed to remove cluster '%s'", name)
 	}
 
-	if name == *r.currentCluster {
+	if r.currentCluster != nil && name == *r.currentCluster {
 		return r.clearCurrentClusterName()
 	}
 

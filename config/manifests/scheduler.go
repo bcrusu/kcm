@@ -10,9 +10,13 @@ metadata:
   name: kube-scheduler
 spec:
   hostNetwork: true
-  tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/node
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-role.kubernetes.io/master
+            operator: Exists
   containers:
   - name: kube-scheduler
     image: gcr.io/google_containers/kube-scheduler:{{ .ImageTag }}
@@ -20,6 +24,10 @@ spec:
     - kube-scheduler
     - "--address=0.0.0.0"
     - "--kubeconfig=/opt/kubernetes/kubeconfig"
+    volumeMounts:
+    - name: opt-kubernetes
+      mountPath: "/opt/kubernetes"
+      readOnly: true
     livenessProbe:
       httpGet:
         scheme: HTTP
@@ -28,4 +36,8 @@ spec:
         path: "/healthz"
       initialDelaySeconds: 15
       timeoutSeconds: 15
+  volumes:
+  - name: opt-kubernetes
+    hostPath:
+      path: /opt/kubernetes  
 `

@@ -13,9 +13,13 @@ metadata:
   name: kube-controller-manager
 spec:
   hostNetwork: true
-  tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/node
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-role.kubernetes.io/master
+            operator: Exists
   containers:
   - name: kube-controller-manager
     image: gcr.io/google_containers/kube-controller-manager:{{ .ImageTag }}
@@ -35,6 +39,9 @@ spec:
     - name: etcssl
       mountPath: "/etc/ssl"
       readOnly: true
+    - name: opt-kubernetes
+      mountPath: "/opt/kubernetes"
+      readOnly: true
     livenessProbe:
       httpGet:
         scheme: HTTP
@@ -50,4 +57,7 @@ spec:
   - name: etcssl
     hostPath:
       path: "/etc/ssl"
+  - name: opt-kubernetes
+    hostPath:
+      path: /opt/kubernetes  
 `

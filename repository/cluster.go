@@ -21,7 +21,8 @@ type Cluster struct {
 	CACertificate        []byte          `json:"caCertificate"`
 	CAPrivateKey         []byte          `json:"caPrivateKey"`
 	DNSDomain            string          `json:"dnsDomain"`
-	MasterURL            string          `json:"masterURL"`
+	MasterURL            string          `json:"masterUrl"`
+	MasterIP             string          `json:"masterIp"`
 }
 
 type Node struct {
@@ -129,6 +130,10 @@ func (c *Cluster) Validate() error {
 
 	if c.MasterURL == "" {
 		return errors.New("repository: missing master URL")
+	}
+
+	if c.MasterIP == "" {
+		return errors.New("repository: missing master IP")
 	}
 
 	if err := c.Network.validate(); err != nil {

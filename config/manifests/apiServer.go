@@ -11,9 +11,13 @@ metadata:
   name: kube-apiserver
 spec:
   hostNetwork: true
-  tolerations:
-  - effect: NoSchedule
-    key: node-role.kubernetes.io/node
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: node-role.kubernetes.io/master
+            operator: Exists
   containers:
   - name: kube-apiserver
     image: gcr.io/google_containers/kube-apiserver:{{ .ImageTag }}
@@ -21,8 +25,9 @@ spec:
     - kube-apiserver
     - "--apiserver-count=1"
     - "--allow-privileged=true"
-    - "--etcd-servers=127.0.0.1:2379"
+    - "--etcd-servers=http://127.0.0.1:2379"
     - "--bind-address=0.0.0.0"
+    - "--secure-port=6443"
     - "--anonymous-auth=false"
     - "--tls-cert-file=/opt/kubernetes/certs/tls.pem"
     - "--tls-private-key-file=/opt/kubernetes/certs/tls-key.pem"
@@ -46,6 +51,9 @@ spec:
     - name: etcssl
       mountPath: "/etc/ssl"
       readOnly: true
+    - name: opt-kubernetes
+      mountPath: "/opt/kubernetes"
+      readOnly: true
     livenessProbe:
       httpGet:
         scheme: HTTP
@@ -61,4 +69,7 @@ spec:
   - name: etcssl
     hostPath:
       path: "/etc/ssl"
+  - name: opt-kubernetes
+    hostPath:
+      path: /opt/kubernetes        
 `
