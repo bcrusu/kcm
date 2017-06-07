@@ -79,9 +79,12 @@ func (c *Cluster) save(clusterFile string) error {
 }
 
 func (c *Cluster) Validate() error {
-	//TODO: name must be a valid dns host name
 	if c.Name == "" {
 		return errors.New("repository: missing cluster name")
+	}
+
+	if err := util.IsDNS1123Label(c.Name); err != nil {
+		return err
 	}
 
 	if len(strings.TrimSpace(c.Name)) != len(c.Name) {
@@ -151,13 +154,16 @@ func (c *Cluster) Validate() error {
 }
 
 func (n *Node) Validate() error {
-	//TODO: name must be a valid dns host name
 	if n == nil {
 		return errors.Errorf("repository: nil node")
 	}
 
 	if n.Name == "" {
 		return errors.Errorf("repository: missing node name")
+	}
+
+	if err := util.IsDNS1123Label(n.Name); err != nil {
+		return err
 	}
 
 	if n.Domain == "" {

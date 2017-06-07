@@ -2,6 +2,7 @@ package util
 
 import (
 	"net"
+	"regexp"
 
 	"github.com/pkg/errors"
 )
@@ -72,4 +73,24 @@ func getDHCPRange(ipnet *net.IPNet) (net.IP, net.IP) {
 	}
 
 	return start, end
+}
+
+const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+const dns1123LabelErrMsg string = "a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character"
+const DNS1123LabelMaxLength int = 63
+
+var dns1123LabelRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
+
+// stolen from here: https://github.com/kubernetes/kubernetes/blob/master/staging/src/k8s.io/apimachinery/pkg/util/validation/validation.go
+// IsDNS1123Label tests for a string that conforms to the definition of a label in DNS (RFC 1123).
+func IsDNS1123Label(value string) error {
+	if len(value) > DNS1123LabelMaxLength {
+		return errors.Errorf("invalid DNS label '%s' - max length of 63 chars exceeded", value)
+	}
+
+	if !dns1123LabelRegexp.MatchString(value) {
+		return errors.Errorf("invalid DNS label '%s' - "+dns1123LabelErrMsg, value)
+	}
+
+	return nil
 }
