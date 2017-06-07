@@ -22,8 +22,9 @@ spec:
     image: gcr.io/google_containers/kube-scheduler:{{ .ImageTag }}
     command:
     - kube-scheduler
-    - "--address=0.0.0.0"
-    - "--kubeconfig=/opt/kubernetes/kubeconfig"
+    - "--address=127.0.0.1"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig-kube-scheduler"
+    - "--leader-elect=true"
     volumeMounts:
     - name: opt-kubernetes
       mountPath: "/opt/kubernetes"

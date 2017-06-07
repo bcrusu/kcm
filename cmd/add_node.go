@@ -114,16 +114,6 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 	domainName := libvirtDomainName(cluster.Name, name)
 	dnsName := nodeDNSName(name, cluster.DNSDomain)
 
-	caCertificate, err := util.ParseCertificate(cluster.CACertificate)
-	if err != nil {
-		return repository.Node{}, err
-	}
-
-	certificate, key, err := util.CreateCertificate(dnsName, caCertificate, dnsName)
-	if err != nil {
-		return repository.Node{}, err
-	}
-
 	return repository.Node{
 		Name:                 name,
 		IsMaster:             s.IsMaster,
@@ -133,8 +123,6 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 		StoragePool:          cluster.StoragePool,
 		BackingStorageVolume: cluster.BackingStorageVolume,
 		StorageVolume:        libvirtStorageVolumeName(domainName),
-		Certificate:          certificate,
-		PrivateKey:           key,
 		DNSName:              dnsName,
 	}, nil
 }

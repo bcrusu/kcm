@@ -33,8 +33,6 @@ type Node struct {
 	StoragePool          string `json:"storagePool"`
 	BackingStorageVolume string `json:"backingStorageVolume"`
 	StorageVolume        string `json:"storageVolume"`
-	Certificate          []byte `json:"certificate"`
-	PrivateKey           []byte `json:"privateKey"`
 	DNSName              string `json:"dnsName"`
 }
 
@@ -188,14 +186,6 @@ func (n *Node) Validate() error {
 
 	if n.MemoryMiB < 128 {
 		return errors.Errorf("repository: invalid memory value")
-	}
-
-	if n.Certificate == nil {
-		return errors.New("repository: missing node certificate")
-	}
-
-	if n.PrivateKey == nil {
-		return errors.New("repository: missing node private key")
 	}
 
 	if n.DNSName == "" {

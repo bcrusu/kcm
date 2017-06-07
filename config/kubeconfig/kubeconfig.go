@@ -1,50 +1,95 @@
 package kubeconfig
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+
+	"path"
+
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 )
 
-func WriteKubeconfig(filename string, node repository.Node, cluster repository.Cluster) error {
+func WriteKubeconfigFiles(outDir string, node repository.Node, cluster repository.Cluster) error {
+	caCert, err := util.ParseCertificate(cluster.CACertificate)
+	if err != nil {
+		return err
+	}
+
+	caKey, err := util.ParsePrivateKey(cluster.CAPrivateKey)
+	if err != nil {
+		return err
+	}
+
+	if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kubelet"), "kubelet", cluster, caCert, caKey); err != nil {
+		return err
+	}
+
+	if node.IsMaster {
+		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-scheduler"), KubeScheduler, cluster, caCert, caKey); err != nil {
+			return err
+		}
+
+		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-controller-manager"), KubeControllerManager, cluster, caCert, caKey); err != nil {
+			return err
+		}
+	} else {
+		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-proxy"), KubeProxy, cluster, caCert, caKey); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateKubeconfigFile(filename string, user string, cluster repository.Cluster, caCert *x509.Certificate, caKey *rsa.PrivateKey) error {
+	clientCert, clientKey, err := util.CreateClientCertificate(user, caCert, caKey)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := CreateKubeconfig(user, cluster.Name, cluster.ServerURL, cluster.CACertificate, clientCert, clientKey)
+	if err != nil {
+		return err
+	}
+
+	return util.WriteFile(filename, bytes)
+}
+
+func CreateKubeconfig(user, clusterName, serverURL string, caCert, clientCert, clientKey []byte) ([]byte, error) {
 	config := &KubectlConfig{
 		ApiVersion: "v1",
 		Kind:       "Config",
 		Users: []*KubectlUserWithName{
 			{
-				Name: "kubelet",
+				Name: user,
 				User: KubectlUser{
-					ClientCertificateData: node.Certificate,
-					ClientKeyData:         node.PrivateKey,
+					ClientCertificateData: clientCert,
+					ClientKeyData:         clientKey,
 				},
 			},
 		},
 		Clusters: []*KubectlClusterWithName{
 			{
-				Name: "local",
+				Name: clusterName,
 				Cluster: KubectlCluster{
-					CertificateAuthorityData: cluster.CACertificate,
-					Server: cluster.ServerURL,
+					CertificateAuthorityData: caCert,
+					Server: serverURL,
 				},
 			},
 		},
 		Contexts: []*KubectlContextWithName{
 			{
-				Name: "service-account-context",
+				Name: "ctx",
 				Context: KubectlContext{
-					Cluster: "local",
-					User:    "kubelet",
+					Cluster: clusterName,
+					User:    user,
 				},
 			},
 		},
-		CurrentContext: "service-account-context",
+		CurrentContext: "ctx",
 	}
 
-	bytes, err := yaml.Marshal(config)
-	if err != nil {
-		return errors.Wrapf(err, "failed to marshal kubeconfig to yaml")
-	}
-
-	return util.WriteFile(filename, bytes)
+	return yaml.Marshal(config)
 }

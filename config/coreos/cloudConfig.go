@@ -127,19 +127,20 @@ coreos:
         StartLimitInterval=0
         KillMode=process
         ExecStart=/opt/kubernetes/bin/kubelet \
-        --address=0.0.0.0 \
+        --address=127.0.0.1 \
         --hostname-override={{ .Hostname }} \
         --cluster-domain={{ .ClusterDomain }} \
-        --kubeconfig=/opt/kubernetes/kubeconfig \
+        --kubeconfig=/opt/kubernetes/kubeconfig-kubelet \
         --require-kubeconfig=true \
+        --anonymous-auth=false \
         --register-node=true \
         --node-labels='kubernetes.io/role={{ Role }},node-role.kubernetes.io/{{ Role }}=' \
         --network-plugin=cni \
         --non-masquerade-cidr={{ .NonMasqueradeCIDR }} \
         --allow-privileged=true \
         --pod-manifest-path=/opt/kubernetes/manifests \
-        --tls-cert-file=/opt/kubernetes/certs/tls.pem \
-        --tls-private-key-file=/opt/kubernetes/certs/tls-key.pem \
+        --tls-cert-file=/opt/kubernetes/certs/tls-server.pem \
+        --tls-private-key-file=/opt/kubernetes/certs/tls-server-key.pem \
         --client-ca-file=/opt/kubernetes/certs/ca.pem {{ if .IsMaster }}\
         --register-with-taints='node-role.kubernetes.io/master=:NoSchedule'{{ end }}
 
@@ -159,7 +160,7 @@ coreos:
         Type=forking
         KillMode=process
 {{ if .IsMaster }}
-        ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar &&docker load -i kube-scheduler.tar'
+        ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar && docker load -i kube-scheduler.tar'
 {{ else }}
         ExecStart=/usr/bin/docker load -i kube-proxy.tar
 {{ end }}

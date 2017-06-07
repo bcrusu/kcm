@@ -29,7 +29,7 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 		return err
 	}
 
-	if err := kubeconfig.WriteKubeconfig(path.Join(outDir, "kubeconfig"), node, c.cluster); err != nil {
+	if err := kubeconfig.WriteKubeconfigFiles(outDir, node, c.cluster); err != nil {
 		return err
 	}
 
@@ -94,12 +94,48 @@ func (c ClusterConfig) writeCertificates(outDir string, node repository.Node) er
 		return err
 	}
 
-	if err := util.WriteFile(path.Join(outDir, "tls.pem"), node.Certificate); err != nil {
+	if err := util.WriteFile(path.Join(outDir, "ca-key.pem"), c.cluster.CAPrivateKey); err != nil {
 		return err
 	}
 
-	if err := util.WriteFile(path.Join(outDir, "tls-key.pem"), node.PrivateKey); err != nil {
+	caCert, err := util.ParseCertificate(c.cluster.CACertificate)
+	if err != nil {
 		return err
+	}
+
+	caKey, err := util.ParsePrivateKey(c.cluster.CAPrivateKey)
+	if err != nil {
+		return err
+	}
+
+	if node.IsMaster {
+		clientCert, clientKey, err := util.CreateClientCertificate(node.DNSName, caCert, caKey)
+		if err != nil {
+			return err
+		}
+
+		if err := util.WriteFile(path.Join(outDir, "tls-client.pem"), clientCert); err != nil {
+			return err
+		}
+
+		if err := util.WriteFile(path.Join(outDir, "tls-client-key.pem"), clientKey); err != nil {
+			return err
+		}
+	}
+
+	{
+		serverCert, serverKey, err := util.CreateServerCertificate(node.DNSName, caCert, caKey)
+		if err != nil {
+			return err
+		}
+
+		if err := util.WriteFile(path.Join(outDir, "tls-server.pem"), serverCert); err != nil {
+			return err
+		}
+
+		if err := util.WriteFile(path.Join(outDir, "tls-server-key.pem"), serverKey); err != nil {
+			return err
+		}
 	}
 
 	return nil

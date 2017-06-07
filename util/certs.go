@@ -14,27 +14,37 @@ import (
 )
 
 func CreateCACertificate(commonName string) (cert []byte, key []byte, err error) {
-	template, err := newCertificateTemplate()
+	template, err := newCertificateTemplate(commonName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	template.Subject.CommonName = commonName
 	template.IsCA = true
-	template.KeyUsage |= x509.KeyUsageCertSign
+	template.KeyUsage |= x509.KeyUsageCertSign | x509.KeyUsageCRLSign
 
-	return newCertificate(template, nil, 2048)
+	return newCertificate(template, nil, nil, 2048)
 }
 
-func CreateCertificate(commonName string, parent *x509.Certificate, hosts ...string) (cert []byte, key []byte, err error) {
-	template, err := newCertificateTemplate(hosts...)
+func CreateServerCertificate(commonName string, signer *x509.Certificate, signerKey *rsa.PrivateKey, hosts ...string) (cert []byte, key []byte, err error) {
+	template, err := newCertificateTemplate(commonName, hosts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	template.Subject.CommonName = commonName
+	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth}
 
-	return newCertificate(template, parent, 2048)
+	return newCertificate(template, signer, signerKey, 2048)
+}
+
+func CreateClientCertificate(commonName string, signer *x509.Certificate, signerKey *rsa.PrivateKey, hosts ...string) (cert []byte, key []byte, err error) {
+	template, err := newCertificateTemplate(commonName, hosts...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	template.ExtKeyUsage = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
+
+	return newCertificate(template, signer, signerKey, 2048)
 }
 
 func ParseCertificate(data []byte) (*x509.Certificate, error) {
@@ -50,17 +60,31 @@ func ParseCertificate(data []byte) (*x509.Certificate, error) {
 	return x509.ParseCertificate(block.Bytes)
 }
 
-func newCertificate(template, parent *x509.Certificate, rsaBits int) (cert []byte, key []byte, err error) {
+func ParsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, errors.New("input does not contain a PEM block")
+	}
+
+	if block.Type != "RSA PRIVATE KEY" {
+		return nil, errors.New("input does not contain a RSA private key")
+	}
+
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
+func newCertificate(template, signer *x509.Certificate, signerKey *rsa.PrivateKey, rsaBits int) (cert []byte, key []byte, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to generate RSA private key")
 	}
 
-	if parent == nil {
-		parent = template
+	if signer == nil {
+		signer = template
+		signerKey = privateKey
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &privateKey.PublicKey, privateKey)
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, signer, &privateKey.PublicKey, signerKey)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to create certificate")
 	}
@@ -71,7 +95,7 @@ func newCertificate(template, parent *x509.Certificate, rsaBits int) (cert []byt
 	return cert, key, nil
 }
 
-func newCertificateTemplate(hosts ...string) (*x509.Certificate, error) {
+func newCertificateTemplate(commonName string, hosts ...string) (*x509.Certificate, error) {
 	notBefore := time.Now()
 	notAfter := notBefore.Add(365 * 24 * time.Hour)
 
@@ -84,13 +108,13 @@ func newCertificateTemplate(hosts ...string) (*x509.Certificate, error) {
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
+			CommonName:   commonName,
 			Organization: []string{"kcm"},
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,	
+		BasicConstraintsValid: true,
 	}
 
 	for _, n := range hosts {

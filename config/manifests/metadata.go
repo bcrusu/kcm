@@ -35,10 +35,9 @@ func WriteManifests(outDir string, params Params) error {
 
 	if err := util.WriteFile(path.Join(outDir, "kube-controller-manager.yaml"),
 		generateTemplate(controllerManagerTemplate, controllerManagerTemplateParams{
-			ImageTag:            params.ControllerManagerImageTag,
-			ClusterName:         params.ClusterName,
-			PodsNetworkCIDR:     params.PodsNetworkCIDR,
-			ServicesNetworkCIDR: params.ServicesNetworkCIDR,
+			ImageTag:        params.ControllerManagerImageTag,
+			ClusterName:     params.ClusterName,
+			PodsNetworkCIDR: params.PodsNetworkCIDR,
 		})); err != nil {
 		return err
 	}

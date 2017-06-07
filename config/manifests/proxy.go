@@ -23,8 +23,8 @@ spec:
     image: gcr.io/google_containers/kube-proxy:{{ .ImageTag }}
     command:
     - kube-proxy
-    - "--bind-address=0.0.0.0"
-    - "--kubeconfig=/opt/kubernetes/kubeconfig"
+    - "--bind-address=127.0.0.1"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig-kube-proxy"
     - "--cluster-cidr={{ .PodsNetworkCIDR }}"
     volumeMounts:
     - name: opt-kubernetes

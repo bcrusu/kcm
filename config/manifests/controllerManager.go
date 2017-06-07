@@ -1,10 +1,9 @@
 package manifests
 
 type controllerManagerTemplateParams struct {
-	ImageTag            string
-	ClusterName         string
-	PodsNetworkCIDR     string
-	ServicesNetworkCIDR string
+	ImageTag        string
+	ClusterName     string
+	PodsNetworkCIDR string
 }
 
 const controllerManagerTemplate = `kind: Pod
@@ -25,13 +24,15 @@ spec:
     image: gcr.io/google_containers/kube-controller-manager:{{ .ImageTag }}
     command:
     - kube-controller-manager
-    - "--address=0.0.0.0"
-    - "--kubeconfig=/opt/kubernetes/kubeconfig"
+    - "--address=127.0.0.1"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig-kube-controller-manager"
     - "--cluster-name={{ .ClusterName }}"
     - "--root-ca-file=/opt/kubernetes/certs/ca.pem"
-    - "--service-account-private-key-file=/opt/kubernetes/certs/tls-key.pem"
-    - "--service-cluster-ip-range={{ .ServicesNetworkCIDR }}"
+    - "--cluster-signing-cert-file=/opt/kubernetes/certs/ca.pem"
+    - "--cluster-signing-key-file=/opt/kubernetes/certs/ca-key.pem"
+    - "--use-service-account-credentials=true"
     - "--cluster-cidr={{ .PodsNetworkCIDR }}"
+    - "--leader-elect=true"
     volumeMounts:
     - name: srvkube
       mountPath: "/srv/kubernetes"

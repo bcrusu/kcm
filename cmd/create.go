@@ -142,11 +142,6 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		return repository.Cluster{}, err
 	}
 
-	caCertificate, err := util.ParseCertificate(caCertificateBytes)
-	if err != nil {
-		return repository.Cluster{}, err
-	}
-
 	cluster := repository.Cluster{
 		Name:                 clusterName,
 		KubernetesVersion:    s.KubernetesVersion,
@@ -168,11 +163,6 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		domainName := libvirtDomainName(clusterName, name)
 		dnsName := nodeDNSName(name, cluster.DNSDomain)
 
-		certificate, key, err := util.CreateCertificate(dnsName, caCertificate, dnsName)
-		if err != nil {
-			return err
-		}
-
 		node := repository.Node{
 			Name:                 name,
 			IsMaster:             isMaster,
@@ -180,8 +170,6 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 			StoragePool:          s.LibvirtStoragePool,
 			BackingStorageVolume: backingStorageVolume,
 			StorageVolume:        libvirtStorageVolumeName(domainName),
-			Certificate:          certificate,
-			PrivateKey:           key,
 			DNSName:              dnsName,
 		}
 

@@ -29,14 +29,16 @@ spec:
     - "--bind-address=0.0.0.0"
     - "--secure-port=6443"
     - "--anonymous-auth=false"
-    - "--tls-cert-file=/opt/kubernetes/certs/tls.pem"
-    - "--tls-private-key-file=/opt/kubernetes/certs/tls-key.pem"
+    - "--tls-cert-file=/opt/kubernetes/certs/tls-server.pem"
+    - "--tls-private-key-file=/opt/kubernetes/certs/tls-server-key.pem"
     - "--tls-ca-file=/opt/kubernetes/certs/ca.pem"
     - "--client-ca-file=/opt/kubernetes/certs/ca.pem"
     - "--kubelet-certificate-authority=/opt/kubernetes/certs/ca.pem"
-    - "--kubelet-client-certificate=/opt/kubernetes/certs/tls.pem"
-    - "--kubelet-client-key=/opt/kubernetes/certs/tls-key.pem"
+    - "--kubelet-client-certificate=/opt/kubernetes/certs/tls-client.pem"
+    - "--kubelet-client-key=/opt/kubernetes/certs/tls-client-key.pem"
     - "--service-cluster-ip-range={{ .ServicesNetworkCIDR }}"
+    - "--insecure-port=0"
+    - "--storage-backend=etcd2"
     ports:
     - name: https
       hostPort: 443
