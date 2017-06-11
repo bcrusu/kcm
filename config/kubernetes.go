@@ -25,11 +25,12 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 		return err
 	}
 
-	if err := c.writeCertificates(path.Join(outDir, "certs"), node); err != nil {
+	// create mount point for kubeconfig files
+	if err := util.CreateDirectoryPath(path.Join(outDir, "kubeconfig")); err != nil {
 		return err
 	}
 
-	if err := kubeconfig.WriteKubeconfigFiles(outDir, node, c.cluster); err != nil {
+	if err := c.writeCertificates(path.Join(outDir, "certs"), node); err != nil {
 		return err
 	}
 
@@ -49,6 +50,10 @@ func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
 	}
 
 	if err := manifests.WriteManifests(path.Join(outDir, "manifests"), *params); err != nil {
+		return err
+	}
+
+	if err := kubeconfig.WriteKubeconfigFiles(path.Join(outDir, "kubeconfig"), c.cluster); err != nil {
 		return err
 	}
 

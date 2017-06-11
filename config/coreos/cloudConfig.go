@@ -110,16 +110,28 @@ coreos:
         Where=/opt/kubernetes/manifests
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+    - name: opt-kubernetes-kubeconfig.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        After=opt-kubernetes.mount
+        Requires=opt-kubernetes.mount
+        [Mount]
+        What=k8sConfigKubeconfig
+        Where=/opt/kubernetes/kubeconfig
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
 
     - name: kubelet.service
       command: start
       content: |
         [Unit]
-        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service load-k8s-images.service
+        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount docker.service load-k8s-images.service
         ConditionFileIsExecutable=/opt/kubernetes/bin/kubelet
         Description=Kubernetes Kubelet Server
         Documentation=https://github.com/kubernetes/kubernetes
-        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount docker.service load-k8s-images.service
+        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount docker.service load-k8s-images.service
 
         [Service]
         Restart=always
@@ -130,7 +142,7 @@ coreos:
         --address=127.0.0.1 \
         --hostname-override={{ .Hostname }} \
         --cluster-domain={{ .ClusterDomain }} \
-        --kubeconfig=/opt/kubernetes/kubeconfig-kubelet \
+        --kubeconfig=/opt/kubernetes/kubeconfig/kubelet \
         --require-kubeconfig=true \
         --anonymous-auth=false \
         --register-node=true \

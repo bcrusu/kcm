@@ -25,7 +25,7 @@ spec:
     command:
     - kube-controller-manager
     - "--address=127.0.0.1"
-    - "--kubeconfig=/opt/kubernetes/kubeconfig-kube-controller-manager"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig/kube-controller-manager"
     - "--cluster-name={{ .ClusterName }}"
     - "--root-ca-file=/opt/kubernetes/certs/ca.pem"
     - "--cluster-signing-cert-file=/opt/kubernetes/certs/ca.pem"

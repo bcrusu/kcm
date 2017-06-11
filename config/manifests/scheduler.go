@@ -23,7 +23,7 @@ spec:
     command:
     - kube-scheduler
     - "--address=127.0.0.1"
-    - "--kubeconfig=/opt/kubernetes/kubeconfig-kube-scheduler"
+    - "--kubeconfig=/opt/kubernetes/kubeconfig/kube-scheduler"
     - "--leader-elect=true"
     volumeMounts:
     - name: opt-kubernetes

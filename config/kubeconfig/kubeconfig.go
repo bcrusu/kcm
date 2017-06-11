@@ -3,7 +3,6 @@ package kubeconfig
 import (
 	"crypto/rsa"
 	"crypto/x509"
-
 	"path"
 
 	"github.com/bcrusu/kcm/repository"
@@ -11,7 +10,11 @@ import (
 	"github.com/ghodss/yaml"
 )
 
-func WriteKubeconfigFiles(outDir string, node repository.Node, cluster repository.Cluster) error {
+func WriteKubeconfigFiles(outDir string, cluster repository.Cluster) error {
+	if err := util.CreateDirectoryPath(outDir); err != nil {
+		return err
+	}
+
 	caCert, err := util.ParseCertificate(cluster.CACertificate)
 	if err != nil {
 		return err
@@ -22,22 +25,20 @@ func WriteKubeconfigFiles(outDir string, node repository.Node, cluster repositor
 		return err
 	}
 
-	if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kubelet"), "kubelet", cluster, caCert, caKey); err != nil {
+	if err := generateKubeconfigFile(path.Join(outDir, "kubelet"), "kubelet", cluster, caCert, caKey); err != nil {
 		return err
 	}
 
-	if node.IsMaster {
-		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-scheduler"), KubeScheduler, cluster, caCert, caKey); err != nil {
-			return err
-		}
+	if err := generateKubeconfigFile(path.Join(outDir, "kube-scheduler"), KubeScheduler, cluster, caCert, caKey); err != nil {
+		return err
+	}
 
-		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-controller-manager"), KubeControllerManager, cluster, caCert, caKey); err != nil {
-			return err
-		}
-	} else {
-		if err := generateKubeconfigFile(path.Join(outDir, "kubeconfig-kube-proxy"), KubeProxy, cluster, caCert, caKey); err != nil {
-			return err
-		}
+	if err := generateKubeconfigFile(path.Join(outDir, "kube-controller-manager"), KubeControllerManager, cluster, caCert, caKey); err != nil {
+		return err
+	}
+
+	if err := generateKubeconfigFile(path.Join(outDir, "kube-proxy"), KubeProxy, cluster, caCert, caKey); err != nil {
+		return err
 	}
 
 	return nil

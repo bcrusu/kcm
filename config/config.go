@@ -145,6 +145,10 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 			HostPath:  path.Join(c.clusterDir, "manifests"),
 			GuestPath: "k8sConfigManifests",
 		},
+		libvirt.FilesystemMount{
+			HostPath:  path.Join(c.clusterDir, "kubeconfig"),
+			GuestPath: "k8sConfigKubeconfig",
+		},
 	}
 }
 
