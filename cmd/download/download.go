@@ -39,7 +39,7 @@ func downloadBackingStorageImage(connection *libvirt.Connection, cluster reposit
 	}
 
 	if volume == nil {
-		if err := downloadCoreOS(cluster.CoreOSVersion, cluster.CoreOSChannel, cluster.BackingStorageVolume, poolPath); err != nil {
+		if err := downloadCoreOS(cluster.CoreOSChannel, cluster.CoreOSVersion, cluster.BackingStorageVolume, poolPath); err != nil {
 			return err
 		}
 	}
