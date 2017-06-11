@@ -16,7 +16,7 @@ import (
 )
 
 const DefaultKubernetesVersion = "1.6.4"
-const DefaultCoreOSVersion = "1353.7.0"
+const DefaultCoreOSVersion = "1353.8.0"
 const DefaultCoreOsChannel = "stable"
 
 type createCmdState struct {
