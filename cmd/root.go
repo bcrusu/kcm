@@ -23,6 +23,7 @@ func init() {
 	RootCmd.AddCommand(newListCmd())
 	RootCmd.AddCommand(newCurrentCmd())
 	RootCmd.AddCommand(newAddNodeCmd())
+	RootCmd.AddCommand(newStatusCmd())
 }
 
 var RootCmd = &cobra.Command{

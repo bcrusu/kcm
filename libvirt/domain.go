@@ -185,3 +185,24 @@ func listAllDomains(connect *libvirt.Connect) ([]libvirtxml.Domain, error) {
 
 	return result, nil
 }
+
+func listDomainInterfaceAddresses(connect *libvirt.Connect, name string) ([]string, error) {
+	domain, err := lookupDomainStrict(connect, name)
+	if err != nil {
+		return nil, err
+	}
+
+	ifaces, err := domain.ListAllInterfaceAddresses(libvirt.DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to list domain interfaces")
+	}
+
+	var result []string
+	for _, iface := range ifaces {
+		for _, addr := range iface.Addrs {
+			result = append(result, addr.Addr)
+		}
+	}
+
+	return result, nil
+}

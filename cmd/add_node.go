@@ -5,6 +5,7 @@ import (
 
 	"github.com/bcrusu/kcm/cmd/create"
 	"github.com/bcrusu/kcm/cmd/start"
+	"github.com/bcrusu/kcm/cmd/status"
 	"github.com/bcrusu/kcm/cmd/validate"
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
@@ -148,7 +149,7 @@ func (s *addNodeCmdState) startNode(connection *libvirt.Connection, cluster repo
 	}
 
 	// start the node only if the cluster is running
-	running, err := start.IsClusterRunning(connection, cluster)
+	running, err := status.IsClusterActive(connection, cluster)
 	if err != nil {
 		return err
 	}

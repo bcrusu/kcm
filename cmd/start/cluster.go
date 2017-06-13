@@ -33,8 +33,3 @@ func Cluster(connection *libvirt.Connection, cluster repository.Cluster) error {
 
 	return nil
 }
-
-func IsClusterRunning(connection *libvirt.Connection, cluster repository.Cluster) (bool, error) {
-	// simple check atm. - assume cluster is running if the network is active
-	return isNetworkActive(connection, cluster.Network.Name)
-}

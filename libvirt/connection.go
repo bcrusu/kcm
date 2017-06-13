@@ -345,3 +345,7 @@ func (c *Connection) UndefineNetwork(name string) error {
 
 	return nil
 }
+
+func (c *Connection) ListDomainInterfaceAddresses(domainName string) ([]string, error) {
+	return listDomainInterfaceAddresses(c.connect, domainName)
+}
