@@ -9,6 +9,7 @@ const proxyTemplate = `kind: Pod
 apiVersion: v1
 metadata:
   name: kube-proxy
+  namespace: kube-system
 spec:
   hostNetwork: true
   affinity:

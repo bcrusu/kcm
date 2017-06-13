@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path"
 
+	"github.com/bcrusu/kcm/config/addons"
 	"github.com/bcrusu/kcm/config/kubeconfig"
 	"github.com/bcrusu/kcm/config/manifests"
 	"github.com/bcrusu/kcm/repository"
@@ -15,19 +16,14 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 		return err
 	}
 
-	// create mount point for kubernetes bin
-	if err := util.CreateDirectoryPath(path.Join(outDir, "bin")); err != nil {
-		return err
-	}
-
-	// create mount point for static pods manifests
-	if err := util.CreateDirectoryPath(path.Join(outDir, "manifests")); err != nil {
-		return err
-	}
-
-	// create mount point for kubeconfig files
-	if err := util.CreateDirectoryPath(path.Join(outDir, "kubeconfig")); err != nil {
-		return err
+	{
+		// create mount points
+		mountPoints := []string{"bin", "manifests", "addons", "kubeconfig"}
+		for _, mountPoint := range mountPoints {
+			if err := util.CreateDirectoryPath(path.Join(outDir, mountPoint)); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := c.writeCertificates(path.Join(outDir, "certs"), node); err != nil {
@@ -38,18 +34,25 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 }
 
 func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
-	params := &manifests.Params{
-		ClusterName:         c.cluster.Name,
-		PodsNetworkCIDR:     c.podsNetworkCIDR,
-		ServicesNetworkCIDR: c.servicesNetworkCIDR,
-		FlannelImageTag:     "v0.7.1",
+	{
+		params := &manifests.Params{
+			ClusterName:         c.cluster.Name,
+			PodsNetworkCIDR:     c.podsNetworkCIDR,
+			ServicesNetworkCIDR: c.servicesNetworkCIDR,
+		}
+
+		if err := c.readKubernetesImageTags(params); err != nil {
+			return err
+		}
+
+		if err := manifests.WriteManifests(path.Join(outDir, "manifests"), *params); err != nil {
+			return err
+		}
 	}
 
-	if err := c.readKubernetesImageTags(params); err != nil {
-		return err
-	}
-
-	if err := manifests.WriteManifests(path.Join(outDir, "manifests"), *params); err != nil {
+	if err := addons.WriteManifests(path.Join(outDir, "addons"), addons.Params{
+		PodsNetworkCIDR: c.podsNetworkCIDR,
+	}); err != nil {
 		return err
 	}
 

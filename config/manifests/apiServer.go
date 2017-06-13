@@ -9,6 +9,7 @@ const apiServerTemplate = `kind: Pod
 apiVersion: v1
 metadata:
   name: kube-apiserver
+  namespace: kube-system
 spec:
   hostNetwork: true
   affinity:
@@ -37,8 +38,8 @@ spec:
     - "--kubelet-client-certificate=/opt/kubernetes/certs/tls-client.pem"
     - "--kubelet-client-key=/opt/kubernetes/certs/tls-client-key.pem"
     - "--service-cluster-ip-range={{ .ServicesNetworkCIDR }}"
-    - "--insecure-port=0"
     - "--storage-backend=etcd2"
+    - "--storage-media-type=application/json"
     ports:
     - name: https
       hostPort: 443

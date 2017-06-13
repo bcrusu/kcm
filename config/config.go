@@ -149,12 +149,17 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 			HostPath:  path.Join(c.clusterDir, "kubeconfig"),
 			GuestPath: "k8sConfigKubeconfig",
 		},
+		libvirt.FilesystemMount{
+			HostPath:  path.Join(c.clusterDir, "addons"),
+			GuestPath: "k8sConfigAddons",
+		},
 	}
 }
 
 func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPublicKey string) error {
 	params := coreos.CloudConfigParams{
 		Hostname:          node.Name,
+		DNSName:           node.DNSName,
 		IsMaster:          node.IsMaster,
 		SSHPublicKey:      sshPublicKey,
 		NonMasqueradeCIDR: c.nonMasqueradeCIDR,

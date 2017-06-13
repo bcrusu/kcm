@@ -10,6 +10,7 @@ const controllerManagerTemplate = `kind: Pod
 apiVersion: v1
 metadata:
   name: kube-controller-manager
+  namespace: kube-system
 spec:
   hostNetwork: true
   affinity:

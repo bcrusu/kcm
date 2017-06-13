@@ -1,4 +1,4 @@
-package manifests
+package addons
 
 type flannelTemplateParams struct {
 	ImageTag        string

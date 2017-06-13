@@ -8,6 +8,7 @@ const schedulerTemplate = `kind: Pod
 apiVersion: v1
 metadata:
   name: kube-scheduler
+  namespace: kube-system
 spec:
   hostNetwork: true
   affinity:

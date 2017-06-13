@@ -41,6 +41,10 @@ func WriteKubeconfigFiles(outDir string, cluster repository.Cluster) error {
 		return err
 	}
 
+	if err := generateKubeconfigFile(path.Join(outDir, "kubectl"), "kubectl", cluster, caCert, caKey); err != nil {
+		return err
+	}
+
 	return nil
 }
 

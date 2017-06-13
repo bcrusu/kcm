@@ -4,6 +4,7 @@ import "github.com/bcrusu/kcm/util"
 
 type CloudConfigParams struct {
 	Hostname          string
+	DNSName           string
 	IsMaster          bool
 	SSHPublicKey      string
 	NonMasqueradeCIDR string
@@ -122,6 +123,18 @@ coreos:
         Where=/opt/kubernetes/kubeconfig
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+    - name: opt-kubernetes-addons.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        After=opt-kubernetes.mount
+        Requires=opt-kubernetes.mount
+        [Mount]
+        What=k8sConfigAddons
+        Where=/opt/kubernetes/addons
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
 
     - name: kubelet.service
       command: start
@@ -139,8 +152,8 @@ coreos:
         StartLimitInterval=0
         KillMode=process
         ExecStart=/opt/kubernetes/bin/kubelet \
-        --address=127.0.0.1 \
-        --hostname-override={{ .Hostname }} \
+        --address=0.0.0.0 \
+        --hostname-override={{ .DNSName }} \
         --cluster-domain={{ .ClusterDomain }} \
         --kubeconfig=/opt/kubernetes/kubeconfig/kubelet \
         --require-kubeconfig=true \
