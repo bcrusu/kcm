@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DefaultKubernetesVersion = "1.6.4"
+const DefaultKubernetesVersion = "1.7.0-beta.1"
 const DefaultCoreOSVersion = "1353.8.0"
 const DefaultCoreOsChannel = "stable"
 
@@ -54,9 +54,9 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the cluster immediately")
 	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Network 10.2.0.0/16 is reserved for pods/services network")
 	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 512, "Master node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 1024, "Master node memory (in MiB)")
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 512, "Node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 1024, "Node memory (in MiB)")
 
 	cmd.RunE = state.runE
 	return cmd

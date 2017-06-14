@@ -34,6 +34,8 @@ spec:
     - "--use-service-account-credentials=true"
     - "--cluster-cidr={{ .PodsNetworkCIDR }}"
     - "--leader-elect=true"
+    - "--controllers=*,serviceaccount-token,bootstrapsigner,tokencleaner"
+    - "--service-account-private-key-file=/opt/kubernetes/certs/tls-server-key.pem"
     volumeMounts:
     - name: srvkube
       mountPath: "/srv/kubernetes"
