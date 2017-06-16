@@ -12,13 +12,9 @@ metadata:
   namespace: kube-system
 spec:
   hostNetwork: true
-  affinity:
-    nodeAffinity:
-      requiredDuringSchedulingIgnoredDuringExecution:
-        nodeSelectorTerms:
-        - matchExpressions:
-          - key: node-role.kubernetes.io/node
-            operator: Exists
+  tolerations:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
   containers:
   - name: kube-proxy
     image: gcr.io/google_containers/kube-proxy:{{ .ImageTag }}

@@ -203,7 +203,7 @@ coreos:
         Type=forking
         KillMode=process
 {{ if .IsMaster }}
-        ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar && docker load -i kube-scheduler.tar'
+        ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar && docker load -i kube-scheduler.tar && docker load -i kube-proxy.tar'
 {{ else }}
         ExecStart=/usr/bin/docker load -i kube-proxy.tar
 {{ end }}

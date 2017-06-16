@@ -132,7 +132,7 @@ func (c ClusterConfig) writeCertificates(outDir string, node repository.Node) er
 	}
 
 	{
-		serverCert, serverKey, err := util.CreateServerCertificate(node.DNSName, caCert, caKey)
+		serverCert, serverKey, err := util.CreateServerCertificate(node.DNSName, caCert, caKey, c.apiServerServiceIP)
 		if err != nil {
 			return err
 		}

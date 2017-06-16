@@ -21,6 +21,7 @@ type ClusterConfig struct {
 	podsNetworkCIDR     string
 	servicesNetworkCIDR string
 	nonMasqueradeCIDR   string
+	apiServerServiceIP  string
 
 	// public/libvirt network
 	Network util.NetworkInfo
@@ -48,6 +49,7 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesBinDir, cniBin
 		cniBinDir:           cniBinDir,
 		podsNetworkCIDR:     "10.2.0.0/17",
 		servicesNetworkCIDR: "10.2.128.0/17",
+		apiServerServiceIP:  "10.2.128.1", // by convention, the API server service gets the 1st IP
 		nonMasqueradeCIDR:   "10.2.0.0/16",
 		Network:             *network,
 	}, nil
