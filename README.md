@@ -12,7 +12,7 @@ TODO
 
 ### Usage
 
-## Create a cluster:
+#### Create a cluster:
 ```
 kcm create mykube
 ```
@@ -23,13 +23,13 @@ kcm create mykube --node-count=5 --start
 ```
 Creates a cluster with 5 nodes and one master and starts it immediately
 
-## Start/stop a cluster:
+#### Start/stop a cluster:
 ```
 kcm start mykube
 kcm stop mykube
 ```
 
-## Remove a cluster:
+#### Remove a cluster:
 ```
 kcm remove cluster mykube
 ```
