@@ -19,8 +19,8 @@ func newClusterRepository() (repository.ClusterRepository, error) {
 	return repository.New(repoPath)
 }
 
-func kubernetesCacheDir() string {
-	return path.Join(*dataDir, "kubeCache")
+func cacheDir() string {
+	return path.Join(*dataDir, "cache")
 }
 
 func connectLibvirt() (*libvirt.Connection, error) {
@@ -66,7 +66,11 @@ func getWorkingCluster(clusterRepository repository.ClusterRepository, clusterNa
 
 func getClusterConfig(cluster repository.Cluster) (*config.ClusterConfig, error) {
 	clusterDir := path.Join(*dataDir, "config", cluster.Name)
-	return config.New(clusterDir, cluster, kubernetesCacheDir())
+
+	kubernetesBinDir := path.Join(cacheDir(), "kubernetes", cluster.KubernetesVersion, "kubernetes", "server", "bin")
+	cniBinDir := path.Join(cacheDir(), "cni", cluster.CNIVersion, "bin")
+
+	return config.New(clusterDir, cluster, kubernetesBinDir, cniBinDir)
 }
 
 func readSSHPublicKey(path string) (string, error) {

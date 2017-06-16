@@ -22,6 +22,8 @@ spec:
   containers:
   - name: kube-proxy
     image: gcr.io/google_containers/kube-proxy:{{ .ImageTag }}
+    securityContext:
+      privileged: true
     command:
     - kube-proxy
     - "--bind-address=127.0.0.1"

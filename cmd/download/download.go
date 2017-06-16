@@ -15,8 +15,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func DownloadPrerequisites(connection *libvirt.Connection, cluster repository.Cluster, kubernetesCacheDir string) error {
-	if err := downloadKubernetes(cluster.KubernetesVersion, kubernetesCacheDir); err != nil {
+func DownloadPrerequisites(connection *libvirt.Connection, cluster repository.Cluster, cacheDir string) error {
+	if err := downloadKubernetes(cluster.KubernetesVersion, path.Join(cacheDir, "kubernetes")); err != nil {
+		return err
+	}
+
+	if err := downloadCNI(cluster.CNIVersion, path.Join(cacheDir, "cni")); err != nil {
 		return err
 	}
 
@@ -100,11 +104,7 @@ func downloadCoreOS(channel, version string, volumeName string, outDir string) e
 	return nil
 }
 
-func runDownloadKubernetes(version string, outDir string) error {
-	url := fmt.Sprintf("https://storage.googleapis.com/kubernetes-release/release/v%s/kubernetes-server-linux-amd64.tar.gz", version)
-
-	glog.Infof("downloading Kubernetes from '%s' to path '%s'", url, "")
-
+func downloadTarGz(url string, outDir string) error {
 	downloadReader, err := util.DownloadHTTP(url)
 	if err != nil {
 		return err
@@ -121,8 +121,8 @@ func runDownloadKubernetes(version string, outDir string) error {
 	return util.ExtractTar(buffered, outDir)
 }
 
-func downloadKubernetes(version string, kubeCacheDir string) error {
-	kubePath := path.Join(kubeCacheDir, version)
+func downloadKubernetes(version string, cacheDir string) error {
+	kubePath := path.Join(cacheDir, version)
 
 	exists, err := util.DirectoryExists(kubePath)
 	if err != nil {
@@ -134,5 +134,23 @@ func downloadKubernetes(version string, kubeCacheDir string) error {
 		return nil
 	}
 
-	return runDownloadKubernetes(version, kubePath)
+	url := fmt.Sprintf("https://dl.k8s.io/release/v%s/kubernetes-server-linux-amd64.tar.gz", version)
+	return downloadTarGz(url, kubePath)
+}
+
+func downloadCNI(version string, cacheDir string) error {
+	cniPath := path.Join(cacheDir, version)
+
+	exists, err := util.DirectoryExists(cniPath)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		// CNI already on disk - no need to download
+		return nil
+	}
+
+	url := fmt.Sprintf("https://dl.k8s.io/network-plugins/cni-amd64-%s.tar.gz", version)
+	return downloadTarGz(url, cniPath)
 }

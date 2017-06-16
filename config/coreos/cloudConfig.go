@@ -135,16 +135,32 @@ coreos:
         Where=/opt/kubernetes/addons
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+    - name: opt-cni-bin.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        [Mount]
+        What=cniBin
+        Where=/opt/cni/bin
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
+    - name: allVmMounts.target
+      command: start
+      content: |
+        [Unit]
+        After=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount
+        Requires=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount
 
     - name: kubelet.service
       command: start
       content: |
         [Unit]
-        After=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount docker.service load-k8s-images.service
+        After=allVmMounts.target docker.service load-k8s-images.service
         ConditionFileIsExecutable=/opt/kubernetes/bin/kubelet
         Description=Kubernetes Kubelet Server
         Documentation=https://github.com/kubernetes/kubernetes
-        Requires=opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount docker.service load-k8s-images.service
+        Requires=allVmMounts.target docker.service load-k8s-images.service
 
         [Service]
         Restart=always
@@ -161,6 +177,8 @@ coreos:
         --register-node=true \
         --node-labels='kubernetes.io/role={{ Role }},node-role.kubernetes.io/{{ Role }}=' \
         --network-plugin=cni \
+        --cni-bin-dir=/opt/cni/bin \
+        --cni-conf-dir=/etc/cni/net.d \
         --non-masquerade-cidr={{ .NonMasqueradeCIDR }} \
         --allow-privileged=true \
         --pod-manifest-path=/opt/kubernetes/manifests \

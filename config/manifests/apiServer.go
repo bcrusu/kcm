@@ -41,7 +41,7 @@ spec:
     - "--storage-backend=etcd2"
     - "--storage-media-type=application/json"
     - "--service-account-key-file=/opt/kubernetes/certs/tls-server-key.pem"
-    - "--admission-control=NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,ResourceQuota,DefaultTolerationSeconds"
+    - "--admission-control=Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,PersistentVolumeLabel,DefaultStorageClass,DefaultTolerationSeconds,NodeRestriction,ResourceQuota"
     ports:
     - name: https
       hostPort: 443

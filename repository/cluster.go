@@ -12,6 +12,7 @@ import (
 type Cluster struct {
 	Name                 string          `json:"name"`
 	KubernetesVersion    string          `json:"kubernetesVersion"`
+	CNIVersion           string          `json:"cniVersion"`
 	CoreOSVersion        string          `json:"coreOSVersion"`
 	CoreOSChannel        string          `json:"coreOSChannel"`
 	Nodes                map[string]Node `json:"nodes"` //map[NODE_NAME]NODE
@@ -91,6 +92,10 @@ func (c *Cluster) Validate() error {
 
 	if c.KubernetesVersion == "" {
 		return errors.New("repository: missing Kubernetes version")
+	}
+
+	if c.CNIVersion == "" {
+		return errors.New("repository: missing CNI version")
 	}
 
 	if c.CoreOSChannel == "" || c.CoreOSVersion == "" {

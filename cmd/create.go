@@ -15,12 +15,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const DefaultKubernetesVersion = "1.7.0-beta.1"
+const DefaultKubernetesVersion = "1.7.0-beta.2"
 const DefaultCoreOSVersion = "1353.8.0"
 const DefaultCoreOsChannel = "stable"
+const DefaultCNIVersion = "0799f5732f2a11b329d9e3d51b9c8f2e3759f2ff"
 
 type createCmdState struct {
 	KubernetesVersion  string
+	CNIVersion         string
 	CoreOSVersion      string
 	CoreOSChannel      string
 	LibvirtStoragePool string
@@ -45,6 +47,7 @@ func newCreateCmd() *cobra.Command {
 	state := &createCmdState{}
 
 	cmd.PersistentFlags().StringVar(&state.KubernetesVersion, "kubernetes-version", DefaultKubernetesVersion, "Kubernetes version to use")
+	cmd.PersistentFlags().StringVar(&state.CNIVersion, "cni-version", DefaultCNIVersion, "CNI version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
 	cmd.PersistentFlags().StringVar(&state.LibvirtStoragePool, "libvirt-pool", "default", "Libvirt storage pool")
@@ -107,7 +110,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := download.DownloadPrerequisites(connection, cluster, kubernetesCacheDir()); err != nil {
+	if err := download.DownloadPrerequisites(connection, cluster, cacheDir()); err != nil {
 		return err
 	}
 
@@ -145,6 +148,7 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 	cluster := repository.Cluster{
 		Name:                 clusterName,
 		KubernetesVersion:    s.KubernetesVersion,
+		CNIVersion:           s.CNIVersion,
 		CoreOSChannel:        s.CoreOSChannel,
 		CoreOSVersion:        s.CoreOSVersion,
 		StoragePool:          s.LibvirtStoragePool,

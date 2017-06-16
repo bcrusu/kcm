@@ -32,6 +32,7 @@ spec:
     - "--cluster-signing-cert-file=/opt/kubernetes/certs/ca.pem"
     - "--cluster-signing-key-file=/opt/kubernetes/certs/ca-key.pem"
     - "--use-service-account-credentials=true"
+    - "--allocate-node-cidrs=true"
     - "--cluster-cidr={{ .PodsNetworkCIDR }}"
     - "--leader-elect=true"
     - "--controllers=*,serviceaccount-token,bootstrapsigner,tokencleaner"

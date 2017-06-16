@@ -15,6 +15,7 @@ type ClusterConfig struct {
 	clusterDir       string
 	cluster          repository.Cluster
 	kubernetesBinDir string
+	cniBinDir        string
 
 	// private/k8s network
 	podsNetworkCIDR     string
@@ -29,7 +30,7 @@ type StageNodeResult struct {
 	FilesystemMounts []libvirt.FilesystemMount
 }
 
-func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir string) (*ClusterConfig, error) {
+func New(clusterDir string, cluster repository.Cluster, kubernetesBinDir, cniBinDir string) (*ClusterConfig, error) {
 	err := util.CreateDirectoryPath(clusterDir)
 	if err != nil {
 		return nil, err
@@ -43,7 +44,8 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesCacheDir strin
 	return &ClusterConfig{
 		clusterDir:          clusterDir,
 		cluster:             cluster,
-		kubernetesBinDir:    path.Join(kubernetesCacheDir, cluster.KubernetesVersion, "kubernetes", "server", "bin"),
+		kubernetesBinDir:    kubernetesBinDir,
+		cniBinDir:           cniBinDir,
 		podsNetworkCIDR:     "10.2.0.0/17",
 		servicesNetworkCIDR: "10.2.128.0/17",
 		nonMasqueradeCIDR:   "10.2.0.0/16",
@@ -152,6 +154,10 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 		libvirt.FilesystemMount{
 			HostPath:  path.Join(c.clusterDir, "addons"),
 			GuestPath: "k8sConfigAddons",
+		},
+		libvirt.FilesystemMount{
+			HostPath:  c.cniBinDir,
+			GuestPath: "cniBin",
 		},
 	}
 }
