@@ -160,7 +160,7 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		Nodes:         make(map[string]repository.Node),
 		CACertificate: caCertificateBytes,
 		CAPrivateKey:  caKeyBytes,
-		DNSDomain:     clusterName + ".local",
+		DNSDomain:     clusterName + ".kube",
 	}
 
 	addNode := func(name string, isMaster bool) error {
