@@ -67,7 +67,7 @@ func getWorkingCluster(clusterRepository repository.ClusterRepository, clusterNa
 func getClusterConfig(cluster repository.Cluster) (*config.ClusterConfig, error) {
 	clusterDir := path.Join(*dataDir, "config", cluster.Name)
 
-	kubernetesBinDir := path.Join(cacheDir(), "kubernetes", cluster.KubernetesVersion, "kubernetes", "server", "bin")
+	kubernetesBinDir := kubernetesBinDir(cluster.KubernetesVersion)
 	cniBinDir := path.Join(cacheDir(), "cni", cluster.CNIVersion, "bin")
 
 	return config.New(clusterDir, cluster, kubernetesBinDir, cniBinDir)
@@ -84,4 +84,8 @@ func readSSHPublicKey(path string) (string, error) {
 
 func nodeDNSName(nodeName string, clusterDomain string) string {
 	return fmt.Sprintf("%s.%s", nodeName, clusterDomain)
+}
+
+func kubernetesBinDir(kubernetesVersion string) string {
+	return path.Join(cacheDir(), "kubernetes", kubernetesVersion, "kubernetes", "server", "bin")
 }

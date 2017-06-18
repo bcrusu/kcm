@@ -35,13 +35,22 @@ kcm remove cluster mykube
 ```
 Removes the cluster named 'mykube' and its artefacts (i.e. libvirt objects and files on disk)
 
+#### Use kubectl to interact with the cluster:
+```
+kcm ctl get pods
+kcm ctl apply -f FILENAME
+...
+```
+The 'ctl' command calls the right version of kubectl binary and sets the "--kubeconfig" argument. It uses the following files:
+* kubectl: ~/.kcm/cache/kubernetes/KUBE_VERSION/kubernetes/server/bin/kubectl 
+* kubeconfig: ~/.kcm/config/CLUSTER_NAME/kubeconfig/kubectl
+
 ### Items left to do:
 
-- [ ] Export cluster details to kubectl (i.e. kubectl config set-cluster)
 - [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
 - [ ] Add kube-dns addon
 - [ ] More netorking options (e.g. weave, calico, etc.)
-- [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with previx 'KCM_' should be made available to Kubernetes)
+- [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)
 - [ ] Better status command output: fetch and display k8s cluster status using client-go library
 - [ ] Use the Libvirt StorageVolume.Upload(...) API call to add the base CoreOS image to the pool
 - [ ] Add 'verbose' flag

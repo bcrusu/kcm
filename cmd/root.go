@@ -24,6 +24,7 @@ func init() {
 	RootCmd.AddCommand(newCurrentCmd())
 	RootCmd.AddCommand(newAddNodeCmd())
 	RootCmd.AddCommand(newStatusCmd())
+	RootCmd.AddCommand(newKubectlCmd())
 }
 
 var RootCmd = &cobra.Command{
