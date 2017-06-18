@@ -31,6 +31,7 @@ type Node struct {
 	Domain               string `json:"domain"`
 	MemoryMiB            uint   `json:"memory"`
 	CPUs                 uint   `json:"cpus"`
+	VolumeCapacityGiB    uint   `json:"volumeCapacity"`
 	StoragePool          string `json:"storagePool"`
 	BackingStorageVolume string `json:"backingStorageVolume"`
 	StorageVolume        string `json:"storageVolume"`
@@ -191,6 +192,10 @@ func (n *Node) Validate() error {
 
 	if n.MemoryMiB < 128 {
 		return errors.Errorf("repository: invalid memory value")
+	}
+
+	if n.VolumeCapacityGiB < 2 {
+		return errors.Errorf("repository: invalid volume capacity value")
 	}
 
 	if n.DNSName == "" {

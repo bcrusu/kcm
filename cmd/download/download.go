@@ -8,11 +8,11 @@ import (
 	"io"
 	"path"
 
+	"bytes"
+
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
-	"github.com/golang/glog"
-	"github.com/pkg/errors"
 )
 
 func DownloadPrerequisites(connection *libvirt.Connection, cluster repository.Cluster, cacheDir string) error {
@@ -32,76 +32,49 @@ func DownloadPrerequisites(connection *libvirt.Connection, cluster repository.Cl
 }
 
 func downloadBackingStorageImage(connection *libvirt.Connection, cluster repository.Cluster) error {
-	poolPath, err := getStoragePoolTargetPath(connection, cluster.StoragePool)
-	if err != nil {
-		return err
-	}
-
 	volume, err := connection.GetStorageVolume(cluster.StoragePool, cluster.BackingStorageVolume)
 	if err != nil {
 		return err
 	}
 
-	if volume == nil {
-		if err := downloadCoreOS(cluster.CoreOSChannel, cluster.CoreOSVersion, cluster.BackingStorageVolume, poolPath); err != nil {
-			return err
-		}
+	if volume != nil {
+		// volume exists - will not download
+		return nil
 	}
 
-	// volume exists - will not download
-	return nil
-}
-
-func getStoragePoolTargetPath(connection *libvirt.Connection, pool string) (string, error) {
-	p, err := connection.GetStoragePool(pool)
+	bytes, err := downloadCoreOS(cluster.CoreOSChannel, cluster.CoreOSVersion)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	if p == nil {
-		return "", errors.Errorf("could not find storage pool '%s'", pool)
-	}
+	_, err = connection.CreateStorageVolume(libvirt.CreateStorageVolumeParams{
+		Pool:        cluster.StoragePool,
+		Name:        cluster.BackingStorageVolume,
+		CapacityGiB: 10,
+		Content:     bytes,
+	})
 
-	poolType := p.Type()
-	if poolType != "dir" && poolType != "fs" {
-		return "", errors.Errorf("unsupported storage pool type '%s'", poolType)
-	}
-
-	poolPath := p.Target().Path()
-	if poolPath == "" {
-		return "", errors.Errorf("invalid storage pool '%s'. Target path is empty", poolType)
-	}
-
-	return poolPath, nil
+	return err
 }
 
-func downloadCoreOS(channel, version string, volumeName string, outDir string) error {
-	filePath := path.Join(outDir, volumeName)
-
+func downloadCoreOS(channel, version string) ([]byte, error) {
 	url := fmt.Sprintf("https://%s.release.core-os.net/amd64-usr/%s/coreos_production_qemu_image.img.bz2", channel, version)
-
-	glog.Infof("downloading CoreOS from '%s' to path '%s'", url, filePath)
 
 	downloadReader, err := util.DownloadHTTP(url)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer util.CloseNoError(downloadReader)
 
 	decompressReader := bzip2.NewReader(downloadReader)
+	buffer := &bytes.Buffer{}
 
-	file, err := util.CreateFile(filePath, 0644)
+	_, err = io.Copy(buffer, decompressReader)
 	if err != nil {
-		return err
-	}
-	defer util.CloseNoError(file)
-
-	_, err = io.Copy(file, decompressReader)
-	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return buffer.Bytes(), nil
 }
 
 func downloadTarGz(url string, outDir string) error {

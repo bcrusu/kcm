@@ -19,7 +19,12 @@ func Node(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
 func nodeInternal(connection *libvirt.Connection, clusterConfig *config.ClusterConfig,
 	node repository.Node, networkName, networkInterfaceMAC string, sshPublicKey string) error {
 
-	storageVolume, err := connection.CreateStorageVolume(node.StoragePool, node.StorageVolume, node.BackingStorageVolume)
+	storageVolume, err := connection.CreateStorageVolume(libvirt.CreateStorageVolumeParams{
+		Pool:              node.StoragePool,
+		Name:              node.StorageVolume,
+		CapacityGiB:       node.VolumeCapacityGiB,
+		BackingVolumeName: node.BackingStorageVolume,
+	})
 	if err != nil {
 		return err
 	}

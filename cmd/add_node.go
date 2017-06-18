@@ -21,6 +21,7 @@ type addNodeCmdState struct {
 	Start            bool
 	CPUs             uint
 	Memory           uint
+	VolumeCapacity   uint
 }
 
 func newAddNodeCmd() *cobra.Command {
@@ -35,7 +36,8 @@ func newAddNodeCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
 	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the node immediately if the cluster is running")
 	cmd.PersistentFlags().UintVar(&state.CPUs, "cpu", 1, "Node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.Memory, "memory", 512, "Node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.Memory, "memory", 512, "Node memory (MiB)")
+	cmd.PersistentFlags().UintVar(&state.VolumeCapacity, "volume", 10, "Node volume capacity (GiB)")
 	cmd.PersistentFlags().BoolVarP(&state.IsMaster, "master", "m", false, "Adds a master node")
 
 	cmd.RunE = state.runE
@@ -121,6 +123,7 @@ func (s *addNodeCmdState) createNodeDefinition(name string, cluster repository.C
 		Domain:               domainName,
 		CPUs:                 s.CPUs,
 		MemoryMiB:            s.Memory,
+		VolumeCapacityGiB:    s.VolumeCapacity,
 		StoragePool:          cluster.StoragePool,
 		BackingStorageVolume: cluster.BackingStorageVolume,
 		StorageVolume:        libvirtStorageVolumeName(domainName),

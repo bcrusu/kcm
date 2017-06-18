@@ -103,13 +103,22 @@ func (c *Connection) ListAllDomains() ([]libvirtxml.Domain, error) {
 	return listAllDomains(c.connect)
 }
 
-func (c *Connection) CreateStorageVolume(pool string, name string, backingVolumeName string) (*libvirtxml.StorageVolume, error) {
-	p, err := lookupStoragePoolStrict(c.connect, pool)
+func (c *Connection) CreateStorageVolume(params CreateStorageVolumeParams) (*libvirtxml.StorageVolume, error) {
+	if params.Content != nil && params.BackingVolumeName != "" {
+		return nil, errors.New("libvirt: cannot create storage volume: invalid params")
+	}
+
+	pool, err := lookupStoragePoolStrict(c.connect, params.Pool)
 	if err != nil {
 		return nil, err
 	}
+	defer pool.Free()
 
-	return createStorageVolume(p, name, backingVolumeName)
+	if params.Content != nil {
+		return createStorageVolumeFromContent(c.connect, pool, params)
+	}
+
+	return createStorageVolumeFromBackingVolume(pool, params)
 }
 
 func (c *Connection) GenerateUniqueMACAddresses(count int) ([]string, error) {

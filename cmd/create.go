@@ -21,20 +21,22 @@ const DefaultCoreOsChannel = "stable"
 const DefaultCNIVersion = "0799f5732f2a11b329d9e3d51b9c8f2e3759f2ff"
 
 type createCmdState struct {
-	KubernetesVersion  string
-	CNIVersion         string
-	CoreOSVersion      string
-	CoreOSChannel      string
-	LibvirtStoragePool string
-	NodesCount         uint
-	KubernetesNetwork  string
-	SSHPublicKeyPath   string
-	Start              bool
-	IPv4CIDR           string
-	MasterCPUs         uint
-	MasterMemory       uint
-	NondeCPUs          uint
-	NodeMemory         uint
+	KubernetesVersion    string
+	CNIVersion           string
+	CoreOSVersion        string
+	CoreOSChannel        string
+	LibvirtStoragePool   string
+	NodesCount           uint
+	KubernetesNetwork    string
+	SSHPublicKeyPath     string
+	Start                bool
+	IPv4CIDR             string
+	MasterCPUs           uint
+	MasterMemory         uint
+	MasterVolumeCapacity uint
+	NondeCPUs            uint
+	NodeMemory           uint
+	NodeVolumeCapacity   uint
 }
 
 func newCreateCmd() *cobra.Command {
@@ -57,9 +59,11 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the cluster immediately")
 	cmd.PersistentFlags().StringVar(&state.IPv4CIDR, "ipv4-cidr", "10.1.0.0/16", "Libvirt network IPv4 CIDR. Network 10.2.0.0/16 is reserved for pods/services network")
 	cmd.PersistentFlags().UintVar(&state.MasterCPUs, "master-cpu", 1, "Master node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 1024, "Master node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.MasterVolumeCapacity, "master-volume", 5, "Master volume capacity (GiB)")
+	cmd.PersistentFlags().UintVar(&state.MasterMemory, "master-memory", 1024, "Master node memory (MiB)")
 	cmd.PersistentFlags().UintVar(&state.NondeCPUs, "node-cpu", 1, "Node allocated CPUs")
-	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 1024, "Node memory (in MiB)")
+	cmd.PersistentFlags().UintVar(&state.NodeMemory, "node-memory", 1024, "Node memory (MiB)")
+	cmd.PersistentFlags().UintVar(&state.NodeVolumeCapacity, "node-volume", 10, "Node volume capacity (GiB)")
 
 	cmd.RunE = state.runE
 	return cmd
@@ -180,9 +184,11 @@ func (s *createCmdState) createClusterDefinition(clusterName string) (repository
 		if isMaster {
 			node.CPUs = s.MasterCPUs
 			node.MemoryMiB = s.MasterMemory
+			node.VolumeCapacityGiB = s.MasterVolumeCapacity
 		} else {
 			node.CPUs = s.NondeCPUs
 			node.MemoryMiB = s.NodeMemory
+			node.VolumeCapacityGiB = s.NodeVolumeCapacity
 		}
 
 		cluster.Nodes[name] = node
