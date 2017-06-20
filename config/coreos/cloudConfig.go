@@ -200,11 +200,30 @@ coreos:
 
         [Service]
         WorkingDirectory=/opt/kubernetes/bin
-        Type=forking
+        Type=simple
         KillMode=process
 {{ if .IsMaster }}
         ExecStart=/bin/bash -c 'docker load -i kube-apiserver.tar && docker load -i kube-controller-manager.tar && docker load -i kube-scheduler.tar && docker load -i kube-proxy.tar'
 {{ else }}
         ExecStart=/usr/bin/docker load -i kube-proxy.tar
+{{ end }}
+
+{{ if .IsMaster }}
+    - name: apply-k8s-addons.service
+      command: start
+      content: |
+        [Unit]
+        Description=Load Kubernetes images to Docker
+        After=kubelet.service
+        Requires=kubelet.service
+
+        [Service]
+        WorkingDirectory=/opt/kubernetes/bin
+        Type=simple
+        KillMode=process
+        ExecStart=/bin/bash -c 'sleep 60; while true; do if (./kubectl apply -f /opt/kubernetes/addons --validate=false); then break; fi; sleep 30; done'     
+        
+        [Install]
+        WantedBy=multi-user.target
 {{ end }}
 `
