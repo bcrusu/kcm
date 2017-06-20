@@ -11,6 +11,14 @@ import (
 	"github.com/bcrusu/kcm/util"
 )
 
+type dockerImageTags struct {
+	APIServer         string
+	ControllerManager string
+	Scheduler         string
+	Proxy             string
+	Flannel           string
+}
+
 func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Node) error {
 	if err := util.CreateDirectoryPath(outDir); err != nil {
 		return err
@@ -34,24 +42,26 @@ func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Nod
 }
 
 func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
-	{
-		params := &manifests.Params{
-			ClusterName:         c.cluster.Name,
-			PodsNetworkCIDR:     c.podsNetworkCIDR,
-			ServicesNetworkCIDR: c.servicesNetworkCIDR,
-		}
-
-		if err := c.readKubernetesImageTags(params); err != nil {
-			return err
-		}
-
-		if err := manifests.WriteManifests(path.Join(outDir, "manifests"), *params); err != nil {
-			return err
-		}
+	imageTags, err := c.getDockerImageTags()
+	if err != nil {
+		return err
 	}
 
-	if err := addons.WriteManifests(path.Join(outDir, "addons"), addons.Params{
+	if err := manifests.Write(path.Join(outDir, "manifests"), manifests.Params{
+		ClusterName:               c.cluster.Name,
+		PodsNetworkCIDR:           c.podsNetworkCIDR,
+		ServicesNetworkCIDR:       c.servicesNetworkCIDR,
+		APIServerImageTag:         imageTags.APIServer,
+		ControllerManagerImageTag: imageTags.ControllerManager,
+		SchedulerImageTag:         imageTags.Scheduler,
+	}); err != nil {
+		return err
+	}
+
+	if err := addons.Write(path.Join(outDir, "addons"), addons.Params{
 		PodsNetworkCIDR: c.podsNetworkCIDR,
+		ProxyImageTag:   imageTags.Proxy,
+		FlannelImageTag: imageTags.Flannel,
 	}); err != nil {
 		return err
 	}
@@ -63,7 +73,11 @@ func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
 	return nil
 }
 
-func (c ClusterConfig) readKubernetesImageTags(params *manifests.Params) error {
+func (c ClusterConfig) getDockerImageTags() (*dockerImageTags, error) {
+	result := &dockerImageTags{
+		Flannel: "v0.7.1",
+	}
+
 	var err error
 	readTag := func(fileName string) (string, error) {
 		bytes, err := ioutil.ReadFile(path.Join(c.kubernetesBinDir, fileName))
@@ -74,23 +88,23 @@ func (c ClusterConfig) readKubernetesImageTags(params *manifests.Params) error {
 		return string(bytes), nil
 	}
 
-	if params.APIServerImageTag, err = readTag("kube-apiserver.docker_tag"); err != nil {
-		return err
+	if result.APIServer, err = readTag("kube-apiserver.docker_tag"); err != nil {
+		return nil, err
 	}
 
-	if params.ControllerManagerImageTag, err = readTag("kube-controller-manager.docker_tag"); err != nil {
-		return err
+	if result.ControllerManager, err = readTag("kube-controller-manager.docker_tag"); err != nil {
+		return nil, err
 	}
 
-	if params.ProxyImageTag, err = readTag("kube-proxy.docker_tag"); err != nil {
-		return err
+	if result.Proxy, err = readTag("kube-proxy.docker_tag"); err != nil {
+		return nil, err
 	}
 
-	if params.SchedulerImageTag, err = readTag("kube-scheduler.docker_tag"); err != nil {
-		return err
+	if result.Scheduler, err = readTag("kube-scheduler.docker_tag"); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return result, nil
 }
 
 func (c ClusterConfig) writeCertificates(outDir string, node repository.Node) error {
