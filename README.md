@@ -47,7 +47,6 @@ The 'ctl' command calls the right version of kubectl binary and sets the "--kube
 
 ### Items left to do:
 
-- [ ] Bug: add socat binary to CoreOS image (kubectl port-forward does not work without it)
 - [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
 - [ ] More netorking options (e.g. weave, calico, etc.)
 - [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)

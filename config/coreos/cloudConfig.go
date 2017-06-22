@@ -153,12 +153,22 @@ coreos:
         Where=/opt/cni/bin
         Options=ro,trans=virtio,version=9p2000.L
         Type=9p
+    - name: opt-scripts.mount
+      command: start
+      content: |
+        [Unit]
+        ConditionVirtualization=|vm
+        [Mount]
+        What=scripts
+        Where=/opt/scripts
+        Options=ro,trans=virtio,version=9p2000.L
+        Type=9p
     - name: allVmMounts.target
       command: start
       content: |
         [Unit]
-        After=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount
-        Requires=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount
+        After=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount opt-scripts.mount
+        Requires=opt-kubernetes.mount opt-kubernetes-bin.mount opt-kubernetes-manifests.mount opt-kubernetes-kubeconfig.mount opt-kubernetes-addons.mount opt-cni-bin.mount opt-scripts.mount
 
     - name: kubelet.service
       command: start
@@ -221,17 +231,32 @@ coreos:
       command: start
       content: |
         [Unit]
-        Description=Load Kubernetes images to Docker
+        Description=Apply Kubernetes addons
         After=kubelet.service
         Requires=kubelet.service
 
         [Service]
-        WorkingDirectory=/opt/kubernetes/bin
         Type=simple
         KillMode=process
-        ExecStart=/bin/bash -c 'sleep 60; while true; do if (./kubectl apply -f /opt/kubernetes/addons --validate=false); then break; fi; sleep 30; done'     
+        ExecStart=/opt/scripts/load_addons
         
         [Install]
         WantedBy=multi-user.target
 {{ end }}
+
+    - name: install-socat.service
+      command: start
+      content: |
+        [Unit]
+        Description=Install socat binary
+        After=opt-scripts.mount
+        Requires=opt-scripts.mount
+
+        [Service]
+        Type=simple
+        KillMode=process
+        ExecStart=/opt/scripts/install_socat
+        
+        [Install]
+        WantedBy=multi-user.target
 `

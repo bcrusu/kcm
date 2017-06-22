@@ -71,3 +71,11 @@ func WriteFile(path string, data []byte) error {
 
 	return nil
 }
+
+func WriteExecutableFile(path string, data []byte) error {
+	if err := ioutil.WriteFile(path, data, 0655); err != nil {
+		return errors.Wrapf(err, "failed to write to file '%s'", path)
+	}
+
+	return nil
+}

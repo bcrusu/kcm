@@ -4,6 +4,7 @@ import (
 	"path"
 
 	"github.com/bcrusu/kcm/config/coreos"
+	"github.com/bcrusu/kcm/config/scripts"
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
 	"github.com/bcrusu/kcm/util"
@@ -111,6 +112,10 @@ func (c ClusterConfig) StageCluster() error {
 		return err
 	}
 
+	if err := scripts.Write(path.Join(c.clusterDir, "scripts")); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -160,6 +165,10 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 		libvirt.FilesystemMount{
 			HostPath:  c.cniBinDir,
 			GuestPath: "cniBin",
+		},
+		libvirt.FilesystemMount{
+			HostPath:  path.Join(c.clusterDir, "scripts"),
+			GuestPath: "scripts",
 		},
 	}
 }
