@@ -17,6 +17,7 @@ type dockerImageTags struct {
 	Scheduler         string
 	Proxy             string
 	Flannel           string
+	DNS               string
 }
 
 func (c ClusterConfig) stageKubernetesForNode(outDir string, node repository.Node) error {
@@ -59,9 +60,12 @@ func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
 	}
 
 	if err := addons.Write(path.Join(outDir, "addons"), addons.Params{
+		ClusterDomain:   c.cluster.DNSDomain,
+		DNSServiceIP:    c.dnsServiceIP,
 		PodsNetworkCIDR: c.podsNetworkCIDR,
 		ProxyImageTag:   imageTags.Proxy,
 		FlannelImageTag: imageTags.Flannel,
+		DNSImageTag:     imageTags.DNS,
 	}); err != nil {
 		return err
 	}
@@ -76,6 +80,7 @@ func (c ClusterConfig) stageKubernetesForCluster(outDir string) error {
 func (c ClusterConfig) getDockerImageTags() (*dockerImageTags, error) {
 	result := &dockerImageTags{
 		Flannel: "v0.7.1",
+		DNS:     "1.14.2",
 	}
 
 	var err error
@@ -146,7 +151,21 @@ func (c ClusterConfig) writeCertificates(outDir string, node repository.Node) er
 	}
 
 	{
-		serverCert, serverKey, err := util.CreateServerCertificate(node.DNSName, caCert, caKey, c.apiServerServiceIP)
+		hosts := []string{
+			node.DNSName,
+		}
+
+		if node.IsMaster {
+			hosts = append(hosts, []string{
+				c.apiServerServiceIP,
+				"kubernetes",
+				"kubernetes.default",
+				"kubernetes.default.svc",
+				"kubernetes.default.svc." + c.cluster.DNSDomain,
+			}...)
+		}
+
+		serverCert, serverKey, err := util.CreateServerCertificate(node.DNSName, caCert, caKey, hosts...)
 		if err != nil {
 			return err
 		}

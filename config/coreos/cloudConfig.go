@@ -9,6 +9,7 @@ type CloudConfigParams struct {
 	SSHPublicKey  string
 	Network       util.NetworkInfo
 	ClusterDomain string
+	DNSServiceIP  string
 }
 
 const cloudConfigTemplate = `#cloud-config
@@ -177,6 +178,7 @@ coreos:
         ExecStart=/opt/kubernetes/bin/kubelet \
         --address=0.0.0.0 \
         --hostname-override={{ .DNSName }} \
+        --cluster-dns={{ .DNSServiceIP }} \
         --cluster-domain={{ .ClusterDomain }} \
         --kubeconfig=/opt/kubernetes/kubeconfig/kubelet \
         --require-kubeconfig=true \

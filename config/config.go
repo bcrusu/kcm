@@ -21,6 +21,7 @@ type ClusterConfig struct {
 	podsNetworkCIDR     string
 	servicesNetworkCIDR string
 	apiServerServiceIP  string
+	dnsServiceIP        string
 
 	// public/libvirt network
 	Network util.NetworkInfo
@@ -48,7 +49,8 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesBinDir, cniBin
 		cniBinDir:           cniBinDir,
 		podsNetworkCIDR:     "10.2.0.0/17",
 		servicesNetworkCIDR: "10.2.128.0/17",
-		apiServerServiceIP:  "10.2.128.1", // by convention, the API server service gets the 1st IP
+		apiServerServiceIP:  "10.2.128.1",  // k8s convention, the API server service gets the 1st IP
+		dnsServiceIP:        "10.2.128.10", // could be any IP in the servicesNetworkCIDR range
 		Network:             *network,
 	}, nil
 }
@@ -170,6 +172,7 @@ func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPubli
 		SSHPublicKey:  sshPublicKey,
 		Network:       c.Network,
 		ClusterDomain: c.cluster.DNSDomain,
+		DNSServiceIP:  c.dnsServiceIP,
 	}
 
 	if err := coreos.WriteCoreOSConfig(outDir, params); err != nil {
