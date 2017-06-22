@@ -7,7 +7,7 @@ type CloudConfigParams struct {
 	DNSName           string
 	IsMaster          bool
 	SSHPublicKey      string
-	NonMasqueradeCIDR string
+	NonMasqueradeCIDR string //TODO: remove deprecated flag
 	Network           util.NetworkInfo
 	ClusterDomain     string
 }
@@ -48,6 +48,13 @@ coreos:
             [Service]
             Environment=ETCD_NAME=%H
 {{ end }}
+
+    - name: cbr0.netdev
+      command: start
+      content: |
+        [NetDev]
+        Kind=bridge
+        Name=cbr0
     - name: dhcp.network
       command: start
       content: |
@@ -63,7 +70,8 @@ coreos:
         - name: 50-opts.conf
           content: |
             [Service]
-            Environment='DOCKER_OPTS=--iptables=false'
+            Environment='DOCKER_OPTS=--bridge=cbr0 --iptables=false --ip-masq=false'
+            Environment='DOCKER_NOFILE=1000000'
     - name: docker-tcp.socket
       command: start
       enable: yes

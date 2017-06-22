@@ -27,6 +27,7 @@ data:
       "name": "cbr0",
       "type": "flannel",
       "delegate": {
+        "bridge": "cbr0",
         "forceAddress": true,
         "isDefaultGateway": true,
         "hairpinMode": true
