@@ -3,13 +3,12 @@ package coreos
 import "github.com/bcrusu/kcm/util"
 
 type CloudConfigParams struct {
-	Hostname          string
-	DNSName           string
-	IsMaster          bool
-	SSHPublicKey      string
-	NonMasqueradeCIDR string //TODO: remove deprecated flag
-	Network           util.NetworkInfo
-	ClusterDomain     string
+	Hostname      string
+	DNSName       string
+	IsMaster      bool
+	SSHPublicKey  string
+	Network       util.NetworkInfo
+	ClusterDomain string
 }
 
 const cloudConfigTemplate = `#cloud-config
@@ -187,7 +186,6 @@ coreos:
         --network-plugin=cni \
         --cni-bin-dir=/opt/cni/bin \
         --cni-conf-dir=/etc/cni/net.d \
-        --non-masquerade-cidr={{ .NonMasqueradeCIDR }} \
         --allow-privileged=true \
         --pod-manifest-path=/opt/kubernetes/manifests \
         --tls-cert-file=/opt/kubernetes/certs/tls-server.pem \

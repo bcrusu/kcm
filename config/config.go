@@ -20,7 +20,6 @@ type ClusterConfig struct {
 	// private/k8s network
 	podsNetworkCIDR     string
 	servicesNetworkCIDR string
-	nonMasqueradeCIDR   string
 	apiServerServiceIP  string
 
 	// public/libvirt network
@@ -50,7 +49,6 @@ func New(clusterDir string, cluster repository.Cluster, kubernetesBinDir, cniBin
 		podsNetworkCIDR:     "10.2.0.0/17",
 		servicesNetworkCIDR: "10.2.128.0/17",
 		apiServerServiceIP:  "10.2.128.1", // by convention, the API server service gets the 1st IP
-		nonMasqueradeCIDR:   "10.2.0.0/16",
 		Network:             *network,
 	}, nil
 }
@@ -166,13 +164,12 @@ func (c ClusterConfig) getFilesystemMounts(nodeDir string) []libvirt.FilesystemM
 
 func (c ClusterConfig) stageCoreOS(outDir string, node repository.Node, sshPublicKey string) error {
 	params := coreos.CloudConfigParams{
-		Hostname:          node.Name,
-		DNSName:           node.DNSName,
-		IsMaster:          node.IsMaster,
-		SSHPublicKey:      sshPublicKey,
-		NonMasqueradeCIDR: c.nonMasqueradeCIDR,
-		Network:           c.Network,
-		ClusterDomain:     c.cluster.DNSDomain,
+		Hostname:      node.Name,
+		DNSName:       node.DNSName,
+		IsMaster:      node.IsMaster,
+		SSHPublicKey:  sshPublicKey,
+		Network:       c.Network,
+		ClusterDomain: c.cluster.DNSDomain,
 	}
 
 	if err := coreos.WriteCoreOSConfig(outDir, params); err != nil {
