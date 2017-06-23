@@ -8,7 +8,9 @@
 
 ### Installation
 
-TODO
+```
+go install github.com/bcrusu/kcm
+```
 
 ### Usage
 
