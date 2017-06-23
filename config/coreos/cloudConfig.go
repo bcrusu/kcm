@@ -185,6 +185,7 @@ coreos:
         RestartSec=2
         StartLimitInterval=0
         KillMode=process
+        Environment="PATH=/opt/bin/:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
         ExecStart=/opt/kubernetes/bin/kubelet \
         --address=0.0.0.0 \
         --hostname-override={{ .DNSName }} \
