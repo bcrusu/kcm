@@ -3,7 +3,7 @@ package scripts
 // https://gist.github.com/cdemers/be415cb46327e56c5c47f9689a07a456
 const installSocat = `#! /bin/bash
 
-if [ -e /opt/bin/socat ]
+if [ -e /opt/bin/socat.d/bin/socat ]
 then
   echo socat binary is already installed. Skipping install...
   exit 0
