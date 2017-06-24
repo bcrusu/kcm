@@ -13,7 +13,7 @@ func PrintNodes(stats []NodeStatus) {
 
 	writer := util.NewTabWriter(os.Stdout)
 
-	writer.Print("NODE\tSTATUS\tDNS NAME\tIP")
+	writer.Print("NODE\tSTATUS\tDNS NAME\tDNS LOOKUP\tIP")
 	writer.Nl()
 
 	for _, stat := range stats {
@@ -32,8 +32,25 @@ func PrintNodes(stats []NodeStatus) {
 		writer.Print(stat.Node.DNSName)
 		writer.Tab()
 
+		if stat.DNSLookupErr {
+			writer.Print("FAILED")
+		} else {
+			if stat.Active {
+				writer.Print("OK")
+			} else {
+				writer.Print("-")
+			}
+		}
+		writer.Tab()
+
 		if len(stat.Addresses) > 0 {
 			writer.Print(strings.Join(stat.Addresses, ", "))
+		} else {
+			if stat.Active {
+				writer.Print("waiting DHCP lease")
+			} else {
+				writer.Print("-")
+			}
 		}
 
 		writer.Nl()
@@ -45,7 +62,7 @@ func PrintNodes(stats []NodeStatus) {
 func PrintNetwork(stat NetworkStatus) {
 	writer := util.NewTabWriter(os.Stdout)
 
-	writer.Print("NETWORK\tSTATUS\tDNS SERVER")
+	writer.Print("NETWORK\tSTATUS\tCIDR\tDNS SERVER")
 	writer.Nl()
 
 	writer.Print(stat.Network.Name)
@@ -58,6 +75,9 @@ func PrintNetwork(stat NetworkStatus) {
 	} else {
 		writer.Print("Inactive")
 	}
+	writer.Tab()
+
+	writer.Print(stat.Network.IPv4CIDR)
 	writer.Tab()
 
 	{

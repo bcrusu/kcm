@@ -47,13 +47,29 @@ The 'ctl' command calls the right version of kubectl binary and sets the "--kube
 * kubectl: ~/.kcm/cache/kubernetes/KUBE_VERSION/kubernetes/server/bin/kubectl 
 * kubeconfig: ~/.kcm/config/CLUSTER_NAME/kubeconfig/kubectl
 
+#### Get cluster status:
+```
+kcm status
+```
+Outputs information similar to:
+```
+CLUSTER   STATUS    DNS DOMAIN      KUBE VERSION   COREOS VERSION
+mykube    Active    mykube.kube     1.7.0-beta.2   stable/1353.8.0
+
+NETWORK      STATUS    CIDR          DNS SERVER
+kcm.mykube   Active    10.1.0.0/16   10.1.0.1
+
+NODE      STATUS    DNS NAME             DNS LOOKUP   IP
+master    Active    master.mykube.kube   OK           10.1.238.138
+node1     Active    node1.mykube.kube    OK           10.1.199.19
+node2     Active    node2.mykube.kube    OK           10.1.97.155
+```
+
 ### Items left to do:
 
 - [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
 - [ ] More netorking options (e.g. weave, calico, etc.)
 - [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)
-- [ ] Add 'verbose' flag
-- [ ] Add 'yes' flag for remove command
 
 ### Inspiration
 

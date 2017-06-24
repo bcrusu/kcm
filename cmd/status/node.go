@@ -8,10 +8,11 @@ import (
 )
 
 type NodeStatus struct {
-	Active    bool
-	Missing   bool
-	Addresses []string
-	Node      repository.Node
+	Active       bool
+	Missing      bool
+	Addresses    []string
+	DNSLookupErr bool
+	Node         repository.Node
 }
 
 func Node(connection *libvirt.Connection, node repository.Node) (*NodeStatus, error) {
@@ -33,11 +34,17 @@ func Node(connection *libvirt.Connection, node repository.Node) (*NodeStatus, er
 	}
 
 	var addresses []string
+	var dnsLookupErr bool
 	if active {
-		addresses, err = net.LookupHost(node.DNSName)
+		addresses, err = connection.ListDomainInterfaceAddresses(node.Domain)
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = net.LookupHost(node.DNSName)
 		if err != nil {
 			if _, ok := err.(*net.DNSError); ok {
-				addresses = []string{"DNS lookup failed"}
+				dnsLookupErr = true
 			} else {
 				return nil, err
 			}
@@ -45,9 +52,10 @@ func Node(connection *libvirt.Connection, node repository.Node) (*NodeStatus, er
 	}
 
 	return &NodeStatus{
-		Active:    active,
-		Missing:   false,
-		Addresses: addresses,
-		Node:      node,
+		Active:       active,
+		Missing:      false,
+		Addresses:    addresses,
+		DNSLookupErr: dnsLookupErr,
+		Node:         node,
 	}, nil
 }
