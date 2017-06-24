@@ -52,7 +52,6 @@ The 'ctl' command calls the right version of kubectl binary and sets the "--kube
 - [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
 - [ ] More netorking options (e.g. weave, calico, etc.)
 - [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)
-- [ ] Better status command output: fetch and display k8s cluster status using client-go library
 - [ ] Add 'verbose' flag
 - [ ] Add 'yes' flag for remove command
 - [ ] Check if KSM is not enabled & warn user

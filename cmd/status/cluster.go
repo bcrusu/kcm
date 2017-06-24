@@ -8,7 +8,8 @@ import (
 type ClusterStatus struct {
 	Active  bool
 	Network NetworkStatus
-	Nodes   map[string]NodeStatus
+	Nodes   []NodeStatus
+	Cluster repository.Cluster
 }
 
 func Cluster(connection *libvirt.Connection, cluster repository.Cluster) (*ClusterStatus, error) {
@@ -17,20 +18,21 @@ func Cluster(connection *libvirt.Connection, cluster repository.Cluster) (*Clust
 		return nil, err
 	}
 
-	nodes := make(map[string]NodeStatus)
+	var nodes []NodeStatus
 	for _, node := range cluster.Nodes {
 		nodeStatus, err := Node(connection, node)
 		if err != nil {
 			return nil, err
 		}
 
-		nodes[node.Name] = *nodeStatus
+		nodes = append(nodes, *nodeStatus)
 	}
 
 	return &ClusterStatus{
 		Active:  netStatus.Active,
 		Network: *netStatus,
 		Nodes:   nodes,
+		Cluster: cluster,
 	}, nil
 }
 

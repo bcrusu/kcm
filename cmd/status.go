@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"strings"
-
 	"github.com/bcrusu/kcm/cmd/status"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -13,6 +11,7 @@ import (
 func newStatusCmd() *cobra.Command {
 	var cmd = &cobra.Command{
 		Use:          "status [CLUSTER_NAME]",
+		Aliases:      []string{"stat"},
 		Short:        "Prints the status for the specified/current cluster",
 		SilenceUsage: true,
 	}
@@ -52,26 +51,13 @@ func statusCmdRunE(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "failed to get status for cluster '%s'", cluster.Name)
 	}
 
-	fmt.Printf("Cluster %s\n", cluster.Name)
+	status.PrintCluster(*clusterStatus)
+	fmt.Println()
 
-	{
-		fmt.Println("Nodes:")
-		for name, node := range clusterStatus.Nodes {
-			fmt.Printf("%s:\t", name)
-			if node.Missing {
-				fmt.Print("missing")
-			} else if node.Active {
-				fmt.Printf("active")
-				if len(node.InterfaceAddresses) > 0 {
-					fmt.Printf(" (%s)", strings.Join(node.InterfaceAddresses, ", "))
-				}
-			} else {
-				fmt.Print("inactive")
-			}
+	status.PrintNetwork(clusterStatus.Network)
+	fmt.Println()
 
-			fmt.Println()
-		}
-	}
+	status.PrintNodes(clusterStatus.Nodes)
 
 	return nil
 }

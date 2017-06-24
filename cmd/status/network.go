@@ -8,6 +8,7 @@ import (
 type NetworkStatus struct {
 	Active  bool
 	Missing bool
+	Network repository.Network
 }
 
 func Network(connection *libvirt.Connection, network repository.Network) (*NetworkStatus, error) {
@@ -19,6 +20,7 @@ func Network(connection *libvirt.Connection, network repository.Network) (*Netwo
 	if net == nil {
 		return &NetworkStatus{
 			Missing: true,
+			Network: network,
 		}, nil
 	}
 
@@ -28,6 +30,7 @@ func Network(connection *libvirt.Connection, network repository.Network) (*Netwo
 	}
 
 	return &NetworkStatus{
-		Active: active,
+		Active:  active,
+		Network: network,
 	}, nil
 }
