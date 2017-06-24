@@ -23,7 +23,7 @@ func init() {
 func randomMACAddress(uri string) (string, error) {
 	url, err := url.Parse(uri)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to parse libvirt connection uri")
+		return "", errors.Wrapf(err, "libvirt: failed to parse libvirt connection uri")
 	}
 
 	var mac []byte

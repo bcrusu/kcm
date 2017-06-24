@@ -28,7 +28,7 @@ func lookupDomain(connect *libvirt.Connect, lookup string) (*libvirt.Domain, err
 		domain, err := connect.LookupDomainByUUIDString(lookup)
 		if err != nil {
 			if lverr, ok := err.(libvirt.Error); ok && lverr.Code != libvirt.ERR_NO_DOMAIN {
-				glog.Infof("domain lookup by ID '%s' failed. Error: %v", lookup, lverr)
+				glog.Infof("libvirt: domain lookup by ID '%s' failed. Error: %v", lookup, lverr)
 			}
 		}
 
@@ -43,7 +43,7 @@ func lookupDomain(connect *libvirt.Connect, lookup string) (*libvirt.Domain, err
 			return nil, nil
 
 		}
-		return nil, errors.Wrapf(err, "domain lookup failed '%s'", lookup)
+		return nil, errors.Wrapf(err, "libvirt: domain lookup failed '%s'", lookup)
 	}
 
 	return domain, nil
@@ -65,7 +65,7 @@ func lookupDomainStrict(connect *libvirt.Connect, lookup string) (*libvirt.Domai
 func getDomainXML(domain *libvirt.Domain) (*libvirtxml.Domain, error) {
 	xml, err := domain.GetXMLDesc(libvirt.DomainXMLFlags(0))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch domain XML description")
+		return nil, errors.Wrapf(err, "libvirt: failed to fetch domain XML description")
 	}
 
 	return libvirtxml.NewDomainForXML(xml)
@@ -170,7 +170,7 @@ func listAllDomains(connect *libvirt.Connect) ([]libvirtxml.Domain, error) {
 
 	domains, err := connect.ListAllDomains(flags)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list domains")
+		return nil, errors.Wrapf(err, "libvirt: failed to list domains")
 	}
 
 	for _, domain := range domains {
@@ -194,7 +194,7 @@ func listDomainInterfaceAddresses(connect *libvirt.Connect, name string) ([]stri
 
 	ifaces, err := domain.ListAllInterfaceAddresses(libvirt.DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to list domain interfaces")
+		return nil, errors.Wrapf(err, "libvirt: failed to list domain interfaces")
 	}
 
 	var result []string

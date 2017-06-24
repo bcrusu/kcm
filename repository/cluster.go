@@ -80,7 +80,7 @@ func (c *Cluster) save(clusterFile string) error {
 
 func (c *Cluster) Validate() error {
 	if c.Name == "" {
-		return errors.New("repository: missing cluster name")
+		return errors.New("missing cluster name")
 	}
 
 	if err := util.IsDNS1123Label(c.Name); err != nil {
@@ -88,23 +88,23 @@ func (c *Cluster) Validate() error {
 	}
 
 	if len(strings.TrimSpace(c.Name)) != len(c.Name) {
-		return errors.New("repository: invalid cluster name - cannot start/end with whitespaces")
+		return errors.New("invalid cluster name - cannot start/end with whitespaces")
 	}
 
 	if c.KubernetesVersion == "" {
-		return errors.New("repository: missing Kubernetes version")
+		return errors.New("missing Kubernetes version")
 	}
 
 	if c.CNIVersion == "" {
-		return errors.New("repository: missing CNI version")
+		return errors.New("missing CNI version")
 	}
 
 	if c.CoreOSChannel == "" || c.CoreOSVersion == "" {
-		return errors.New("repository: invalid CoreOS version/channel")
+		return errors.New("invalid CoreOS version/channel")
 	}
 
 	if len(c.Nodes) < 1 {
-		return errors.New("repository: no node configured")
+		return errors.New("no node configured")
 	}
 
 	mastersCount := 0
@@ -119,23 +119,23 @@ func (c *Cluster) Validate() error {
 	}
 
 	if mastersCount == 0 {
-		return errors.New("repository: no master node configured")
+		return errors.New("no master node configured")
 	}
 
 	if mastersCount != 1 {
-		return errors.New("repository: multiple master clusters are not supported atm")
+		return errors.New("multiple master clusters are not supported atm")
 	}
 
 	if c.StoragePool == "" {
-		return errors.New("repository: missing storage pool name")
+		return errors.New("missing storage pool name")
 	}
 
 	if c.BackingStorageVolume == "" {
-		return errors.New("repository: missing backing storage volume")
+		return errors.New("missing backing storage volume")
 	}
 
 	if c.ServerURL == "" {
-		return errors.New("repository: missing server URL")
+		return errors.New("missing server URL")
 	}
 
 	if err := c.Network.validate(); err != nil {
@@ -143,15 +143,15 @@ func (c *Cluster) Validate() error {
 	}
 
 	if c.CACertificate == nil {
-		return errors.New("repository: missing CA certificate")
+		return errors.New("missing CA certificate")
 	}
 
 	if c.CAPrivateKey == nil {
-		return errors.New("repository: missing CA private key")
+		return errors.New("missing CA private key")
 	}
 
 	if c.DNSDomain == "" {
-		return errors.New("repository: missing cluster DNS domain name")
+		return errors.New("missing cluster DNS domain name")
 	}
 
 	return nil
@@ -159,11 +159,11 @@ func (c *Cluster) Validate() error {
 
 func (n *Node) Validate() error {
 	if n == nil {
-		return errors.Errorf("repository: nil node")
+		return errors.Errorf("nil node")
 	}
 
 	if n.Name == "" {
-		return errors.Errorf("repository: missing node name")
+		return errors.Errorf("missing node name")
 	}
 
 	if err := util.IsDNS1123Label(n.Name); err != nil {
@@ -171,35 +171,35 @@ func (n *Node) Validate() error {
 	}
 
 	if n.Domain == "" {
-		return errors.Errorf("repository: missing node domain")
+		return errors.Errorf("missing node domain")
 	}
 
 	if n.StorageVolume == "" {
-		return errors.Errorf("repository: missing node storage volume")
+		return errors.Errorf("missing node storage volume")
 	}
 
 	if n.StoragePool == "" {
-		return errors.Errorf("repository: missing node storage pool")
+		return errors.Errorf("missing node storage pool")
 	}
 
 	if n.BackingStorageVolume == "" {
-		return errors.Errorf("repository: missing backing storage volume")
+		return errors.Errorf("missing backing storage volume")
 	}
 
 	if n.CPUs < 1 {
-		return errors.Errorf("repository: invalid CPUs value")
+		return errors.Errorf("invalid CPUs value")
 	}
 
 	if n.MemoryMiB < 128 {
-		return errors.Errorf("repository: invalid memory value")
+		return errors.Errorf("invalid memory value")
 	}
 
 	if n.VolumeCapacityGiB < 2 {
-		return errors.Errorf("repository: invalid volume capacity value")
+		return errors.Errorf("invalid volume capacity value")
 	}
 
 	if n.DNSName == "" {
-		return errors.New("repository: missing node DNS name")
+		return errors.New("missing node DNS name")
 	}
 
 	return nil
@@ -207,15 +207,15 @@ func (n *Node) Validate() error {
 
 func (n *Network) validate() error {
 	if n == nil {
-		return errors.Errorf("repository: nil network")
+		return errors.Errorf("nil network")
 	}
 
 	if n.Name == "" {
-		return errors.Errorf("repository: missing network name")
+		return errors.Errorf("missing network name")
 	}
 
 	if n.IPv4CIDR == "" {
-		return errors.Errorf("repository: missing network CIDR")
+		return errors.Errorf("missing network CIDR")
 	}
 
 	return nil

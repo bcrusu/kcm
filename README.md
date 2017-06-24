@@ -18,7 +18,7 @@ go install github.com/bcrusu/kcm
 ```
 kcm create mykube
 ```
-Creates a cluster named 'mykube', with 3 minion nodes and one master
+Creates a cluster named 'mykube', with 2 minion nodes and one master
 
 ```
 kcm create mykube --node-count=5 --start
@@ -54,8 +54,6 @@ The 'ctl' command calls the right version of kubectl binary and sets the "--kube
 - [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)
 - [ ] Add 'verbose' flag
 - [ ] Add 'yes' flag for remove command
-- [ ] Check if KSM is not enabled & warn user
-- [ ] Better logging and output error messages
 
 ### Inspiration
 

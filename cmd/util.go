@@ -58,7 +58,11 @@ func getWorkingCluster(clusterRepository repository.ClusterRepository, clusterNa
 	}
 
 	if cluster == nil {
-		return nil, errors.Errorf("could not determine working cluster")
+		if clusterName != "" {
+			return nil, errors.Errorf("could not find cluster '%s'", clusterName)
+		}
+
+		return nil, errors.Errorf("current cluster is not set. Use the 'switch' command to set the current cluster")
 	}
 
 	return cluster, nil

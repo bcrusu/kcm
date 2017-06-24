@@ -2,13 +2,12 @@ package download
 
 import (
 	"bufio"
+	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"path"
-
-	"bytes"
 
 	"github.com/bcrusu/kcm/libvirt"
 	"github.com/bcrusu/kcm/repository"
@@ -41,6 +40,8 @@ func downloadBackingStorageImage(connection *libvirt.Connection, cluster reposit
 		// volume exists - will not download
 		return nil
 	}
+
+	fmt.Printf("Downloading CoreOS image %s/%s...\n", cluster.CoreOSChannel, cluster.CoreOSVersion)
 
 	bytes, err := downloadCoreOS(cluster.CoreOSChannel, cluster.CoreOSVersion)
 	if err != nil {
@@ -107,6 +108,8 @@ func downloadKubernetes(version string, cacheDir string) error {
 		return nil
 	}
 
+	fmt.Printf("Downloading Kubernetes %s...\n", version)
+
 	url := fmt.Sprintf("https://dl.k8s.io/release/v%s/kubernetes-server-linux-amd64.tar.gz", version)
 	return downloadTarGz(url, kubePath)
 }
@@ -123,6 +126,8 @@ func downloadCNI(version string, cacheDir string) error {
 		// CNI already on disk - no need to download
 		return nil
 	}
+
+	fmt.Printf("Downloading CNI %s...\n", version)
 
 	url := fmt.Sprintf("https://dl.k8s.io/network-plugins/cni-amd64-%s.tar.gz", version)
 	return downloadTarGz(url, cniPath)

@@ -22,7 +22,7 @@ func lookupStorageVolume(pool *libvirt.StoragePool, lookup string) (*libvirt.Sto
 		if lverr, ok := err.(libvirt.Error); ok && lverr.Code == libvirt.ERR_NO_STORAGE_VOL {
 			return nil, nil
 		}
-		return nil, errors.Wrapf(err, "storage volume lookup failed '%s'", lookup)
+		return nil, errors.Wrapf(err, "libvirt: storage volume lookup failed '%s'", lookup)
 	}
 
 	return volume, nil
@@ -31,7 +31,7 @@ func lookupStorageVolume(pool *libvirt.StoragePool, lookup string) (*libvirt.Sto
 func getStorageVolumeXML(volume *libvirt.StorageVol) (*libvirtxml.StorageVolume, error) {
 	xml, err := volume.GetXMLDesc(0)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to fetch storage volume XML description")
+		return nil, errors.Wrap(err, "libvirt: failed to fetch storage volume XML description")
 	}
 
 	return libvirtxml.NewStorageVolumeForXML(xml)
@@ -45,7 +45,7 @@ func createStorageVolumeFromBackingVolume(pool *libvirt.StoragePool, params Crea
 		}
 
 		if backingVolume == nil {
-			return nil, errors.Errorf("could not find storage volume '%s'", params.BackingVolumeName)
+			return nil, errors.Errorf("libvirt: could not find storage volume '%s'", params.BackingVolumeName)
 		}
 		defer backingVolume.Free()
 	}
@@ -59,7 +59,7 @@ func createStorageVolumeFromBackingVolume(pool *libvirt.StoragePool, params Crea
 
 		volumeType := volumeXML.Type()
 		if volumeType != "file" {
-			errors.Errorf("cannot clone storage volume '%s' - unsupported volume type '%s'", params.BackingVolumeName, volumeType)
+			errors.Errorf("libvirt: cannot clone storage volume '%s' - unsupported volume type '%s'", params.BackingVolumeName, volumeType)
 		}
 
 		volumeXML.SetName(params.Name)
@@ -96,7 +96,7 @@ func createStorageVolumeFromBackingVolume(pool *libvirt.StoragePool, params Crea
 
 	storageVol, err := pool.StorageVolCreateXML(xmlString, libvirt.StorageVolCreateFlags(0))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to clone storage volume '%s' to '%s'", params.BackingVolumeName, params.Name)
+		return nil, errors.Wrapf(err, "libvirt: failed to clone storage volume '%s' to '%s'", params.BackingVolumeName, params.Name)
 	}
 	defer storageVol.Free()
 
@@ -145,7 +145,7 @@ func createEmptyStorageVolume(pool *libvirt.StoragePool, name string, capacityGi
 
 	storageVol, err := pool.StorageVolCreateXML(xmlString, libvirt.StorageVolCreateFlags(0))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create empty storage volume '%s'", name)
+		return nil, errors.Wrapf(err, "libvirt: failed to create empty storage volume '%s'", name)
 	}
 
 	return storageVol, nil

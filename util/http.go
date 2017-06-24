@@ -15,11 +15,11 @@ func DownloadHTTP(url string) (io.ReadCloser, error) {
 
 	response, err := client.Get(url)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to download '%s'", url)
+		return nil, errors.Wrapf(err, "http: failed to download '%s'", url)
 	}
 
 	if response.StatusCode != 200 {
-		return nil, errors.Errorf("failed to download '%s'. Error code: %d", url, response.StatusCode)
+		return nil, errors.Errorf("http: failed to download '%s'. Error code: %d", url, response.StatusCode)
 	}
 
 	return response.Body, nil

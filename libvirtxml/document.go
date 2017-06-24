@@ -25,11 +25,11 @@ func (d *Document) Unmarshal(xmlDoc string) error {
 	}
 
 	if len(nodes) == 0 {
-		return errors.New("invalid XML document - no root element")
+		return errors.New("libvirtxml: invalid XML document - no root element")
 	}
 
 	if len(nodes) > 1 {
-		return errors.New("invalid XML document - conatains multiple root elements")
+		return errors.New("libvirtxml: invalid XML document - conatains multiple root elements")
 	}
 
 	d.ProcInst = procInst

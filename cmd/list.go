@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/bcrusu/kcm/cmd/list"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -39,14 +38,7 @@ func listCmdRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	for _, cluster := range allClusters {
-		mark := " "
-		if current != nil && cluster.Name == current.Name {
-			mark = "*"
-		}
-
-		fmt.Printf("%s%s\n", mark, cluster.Name)
-	}
+	list.Print(allClusters, current)
 
 	return nil
 }

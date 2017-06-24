@@ -76,7 +76,7 @@ func (s *addNodeCmdState) runE(cmd *cobra.Command, args []string) error {
 
 	// lightweight validation
 	if err := node.Validate(); err != nil {
-		return err
+		return errors.Wrapf(err, "Validation failed")
 	}
 
 	sshPublicKey, err := readSSHPublicKey(s.SSHPublicKeyPath)

@@ -53,7 +53,7 @@ func newCreateCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.CoreOSVersion, "coreos-version", DefaultCoreOSVersion, "CoreOS version to use")
 	cmd.PersistentFlags().StringVar(&state.CoreOSChannel, "coreos-channel", DefaultCoreOsChannel, "CoreOS release channel: stable, beta, alpha")
 	cmd.PersistentFlags().StringVar(&state.LibvirtStoragePool, "libvirt-pool", "default", "Libvirt storage pool")
-	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 1, "Initial number of nodes in the cluster") //TODO: set value to 3
+	cmd.PersistentFlags().UintVar(&state.NodesCount, "node-count", 2, "Initial number of nodes in the cluster")
 	cmd.PersistentFlags().StringVar(&state.KubernetesNetwork, "kubernetes-network", "flannel", "Networking mode to use. Only flannel is suppoted at the moment")
 	cmd.PersistentFlags().StringVar(&state.SSHPublicKeyPath, "ssh-public-key", util.GetUserDefaultSSHPublicKeyPath(), "SSH public key to use")
 	cmd.PersistentFlags().BoolVarP(&state.Start, "start", "s", false, "Start the cluster immediately")
@@ -81,7 +81,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 
 	// lightweight validation - valid names, empty strings, no nodes defined, etc.
 	if err := cluster.Validate(); err != nil {
-		return err
+		return errors.Wrapf(err, "Validation failed")
 	}
 
 	clusterRepository, err := newClusterRepository()
@@ -95,7 +95,7 @@ func (s *createCmdState) runE(cmd *cobra.Command, args []string) error {
 	}
 
 	if exists {
-		return errors.Errorf("failed to create cluster. Cluster '%s' already exists", cluster.Name)
+		return errors.Errorf("cluster '%s' already exists", cluster.Name)
 	}
 
 	sshPublicKey, err := readSSHPublicKey(s.SSHPublicKeyPath)

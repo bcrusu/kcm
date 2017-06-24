@@ -30,7 +30,7 @@ func kubectlCmdRunE(cmd *cobra.Command, args []string) error {
 
 	for _, arg := range args {
 		if strings.HasPrefix(arg, "--kubeconfig") {
-			fmt.Println("Do not set 'kubeconfig' option. It will be set automatically by kcm.")
+			fmt.Println("Do not set 'kubeconfig' option. It will be set automatically by kcm")
 			return nil
 		}
 	}
@@ -40,14 +40,9 @@ func kubectlCmdRunE(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cluster, err := clusterRepository.Current()
+	cluster, err := getWorkingCluster(clusterRepository, "")
 	if err != nil {
 		return err
-	}
-
-	if cluster == nil {
-		fmt.Println("Current cluster is not set. Use the 'switch' command to set the current cluster.")
-		return nil
 	}
 
 	kubectlPath := path.Join(kubernetesBinDir(cluster.KubernetesVersion), "kubectl")

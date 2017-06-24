@@ -18,7 +18,7 @@ type NetworkInfo struct {
 func ParseNetworkCIDR(cidr string) (*NetworkInfo, error) {
 	_, ipnet, err := net.ParseCIDR(cidr)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse CIDR '%s'", cidr)
+		return nil, errors.Wrapf(err, "net: failed to parse CIDR '%s'", cidr)
 	}
 
 	var family string
@@ -28,7 +28,7 @@ func ParseNetworkCIDR(cidr string) (*NetworkInfo, error) {
 	case net.IPv6len:
 		family = "ipv6"
 	default:
-		return nil, errors.Wrapf(err, "failed to parse CIDR '%s'", cidr)
+		return nil, errors.Wrapf(err, "net: failed to parse CIDR '%s'", cidr)
 	}
 
 	dhcpStart, dhcpEnd := getDHCPRange(ipnet)
@@ -85,11 +85,11 @@ var dns1123LabelRegexp = regexp.MustCompile("^" + dns1123LabelFmt + "$")
 // IsDNS1123Label tests for a string that conforms to the definition of a label in DNS (RFC 1123).
 func IsDNS1123Label(value string) error {
 	if len(value) > DNS1123LabelMaxLength {
-		return errors.Errorf("invalid DNS label '%s' - max length of 63 chars exceeded", value)
+		return errors.Errorf("net: invalid DNS label '%s' - max length of 63 chars exceeded", value)
 	}
 
 	if !dns1123LabelRegexp.MatchString(value) {
-		return errors.Errorf("invalid DNS label '%s' - "+dns1123LabelErrMsg, value)
+		return errors.Errorf("net: invalid DNS label '%s' - "+dns1123LabelErrMsg, value)
 	}
 
 	return nil

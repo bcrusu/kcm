@@ -12,7 +12,7 @@ func lookupStoragePool(connect *libvirt.Connect, lookup string) (*libvirt.Storag
 		pool, err := connect.LookupStoragePoolByUUIDString(lookup)
 		if err != nil {
 			if lverr, ok := err.(libvirt.Error); ok && lverr.Code != libvirt.ERR_NO_STORAGE_POOL {
-				glog.Infof("storage pool lookup by ID '%s' failed. Error: %v", lookup, lverr)
+				glog.Infof("libvirt: storage pool lookup by ID '%s' failed. Error: %v", lookup, lverr)
 			}
 		}
 
@@ -27,7 +27,7 @@ func lookupStoragePool(connect *libvirt.Connect, lookup string) (*libvirt.Storag
 			return nil, nil
 		}
 
-		return nil, errors.Wrapf(err, "storage pool lookup failed '%s'", lookup)
+		return nil, errors.Wrapf(err, "libvirt: storage pool lookup failed '%s'", lookup)
 	}
 
 	return pool, nil
@@ -49,7 +49,7 @@ func lookupStoragePoolStrict(connect *libvirt.Connect, lookup string) (*libvirt.
 func getStoragePoolXML(pool *libvirt.StoragePool) (*libvirtxml.StoragePool, error) {
 	xml, err := pool.GetXMLDesc(libvirt.StorageXMLFlags(0))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to fetch storage pool XML description")
+		return nil, errors.Wrapf(err, "libvirt: failed to fetch storage pool XML description")
 	}
 
 	return libvirtxml.NewStoragePoolForXML(xml)

@@ -158,7 +158,7 @@ enclosingLoop:
 			}
 		}
 
-		return nil, errors.Errorf("failed to generate non-conflicting MAC address. Too many colisions")
+		return nil, errors.Errorf("libvirt: failed to generate non-conflicting MAC address. Too many colisions")
 	}
 
 	return result, nil

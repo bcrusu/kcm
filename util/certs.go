@@ -50,11 +50,11 @@ func CreateClientCertificate(commonName string, signer *x509.Certificate, signer
 func ParseCertificate(data []byte) (*x509.Certificate, error) {
 	block, _ := pem.Decode(data)
 	if block == nil {
-		return nil, errors.New("input does not contain a PEM block")
+		return nil, errors.New("certs: input does not contain a PEM block")
 	}
 
 	if block.Type != "CERTIFICATE" {
-		return nil, errors.New("input does not contain a x509 certificate")
+		return nil, errors.New("certs: input does not contain a x509 certificate")
 	}
 
 	return x509.ParseCertificate(block.Bytes)
@@ -63,11 +63,11 @@ func ParseCertificate(data []byte) (*x509.Certificate, error) {
 func ParsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
 	block, _ := pem.Decode(data)
 	if block == nil {
-		return nil, errors.New("input does not contain a PEM block")
+		return nil, errors.New("certs: input does not contain a PEM block")
 	}
 
 	if block.Type != "RSA PRIVATE KEY" {
-		return nil, errors.New("input does not contain a RSA private key")
+		return nil, errors.New("certs: input does not contain a RSA private key")
 	}
 
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
@@ -76,7 +76,7 @@ func ParsePrivateKey(data []byte) (*rsa.PrivateKey, error) {
 func newCertificate(template, signer *x509.Certificate, signerKey *rsa.PrivateKey, rsaBits int) (cert []byte, key []byte, err error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to generate RSA private key")
+		return nil, nil, errors.Wrapf(err, "certs: failed to generate RSA private key")
 	}
 
 	if signer == nil {
@@ -86,7 +86,7 @@ func newCertificate(template, signer *x509.Certificate, signerKey *rsa.PrivateKe
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, signer, &privateKey.PublicKey, signerKey)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to create certificate")
+		return nil, nil, errors.Wrapf(err, "certs: failed to create certificate")
 	}
 
 	cert = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
@@ -102,7 +102,7 @@ func newCertificateTemplate(commonName string, hosts ...string) (*x509.Certifica
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to generate serial number")
+		return nil, errors.Wrapf(err, "certs: failed to generate serial number")
 	}
 
 	template := &x509.Certificate{
