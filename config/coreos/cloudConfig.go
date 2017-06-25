@@ -85,6 +85,20 @@ coreos:
         [Install]
         WantedBy=sockets.target
 
+    - name: load-kernel-modules.service
+      command: start
+      content: |
+        [Unit]
+        Description=Load kernel modules needed by k8s
+
+        [Service]
+        Type=simple
+        KillMode=process
+        ExecStart=/usr/sbin/modprobe br_netfilter
+        
+        [Install]
+        WantedBy=multi-user.target
+
     - name: opt-kubernetes.mount
       command: start
       content: |
