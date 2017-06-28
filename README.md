@@ -67,6 +67,7 @@ node2     Active    node2.mykube.kube    OK           10.1.97.155
 
 ### Items left to do:
 
+- [ ] Add Kubernetes Dashboard
 - [ ] Support clusters with multiple master nodes (via nginx/HAProxy)
 - [ ] More netorking options (e.g. weave, calico, etc.)
 - [ ] Allow users to pass configuration settings to newly-created clusters (e.g. all vars with prefix 'KCM_' should be made available to Kubernetes)
